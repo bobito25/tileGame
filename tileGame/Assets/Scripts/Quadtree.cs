@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Quadtree
@@ -13,6 +15,7 @@ public class Quadtree
     public int level;
     public bool empty;
     public bool loaded;
+    public List<Obstacle> obstacles;
 
     public Quadtree(Quadtree p, BoundsInt a) {
         parent = p;
@@ -68,5 +71,12 @@ public class Quadtree
 
     void draw() {
         Main.DrawRect(new Vector3((float)this.area.x,(float)this.area.y,0), new Vector3((float)this.area.xMax,(float)this.area.yMax,0), Color.red, 100000000);
+    }
+
+    public void addObstacle(Vector2Int p, int t) {
+        if (obstacles == null) {
+            obstacles = new List<Obstacle>();
+        }
+        obstacles.Add(new Obstacle(p,t));
     }
 }

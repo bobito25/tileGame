@@ -20,6 +20,8 @@ public class Main : MonoBehaviour
     Vector3 nextMove;
     Quadtree lastTree;
 
+    public GameObject[] obstacles;
+
     public static int time;
 
     // Start is called before the first frame update
@@ -32,7 +34,6 @@ public class Main : MonoBehaviour
         tr.sortingLayerID = SortingLayer.NameToID("mapLayer");
         tiles = new Tile[5];
         initTiles();
-        initPlayer();
         initTrees();
         initEntities();
         nextMove = new Vector3(0,0,0);
@@ -59,18 +60,30 @@ public class Main : MonoBehaviour
             addRandomGrassAtBlock(-chunkSize/2,-chunkSize/2,chunkSize/2,chunkSize/2);
         }
         if (Input.GetKey("w")) {
-            nextMove.y = 0.01f*playerSpeed;
+            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.up, 0.3f, LayerMask.GetMask("obstacles"));
+            //Debug.DrawRay(player.transform.position, Vector2.up*0.5f, Color.red);
+            if (hit.collider == null) nextMove.y = 0.01f*playerSpeed;
         }
         if (Input.GetKey("a")) {
-            nextMove.x = -0.01f*playerSpeed;
-            player.transform.localScale = new Vector3(1,1,1);
+            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.left, 0.5f, LayerMask.GetMask("obstacles"));
+            //Debug.DrawRay(player.transform.position, Vector2.left*0.5f, Color.red);
+            if (hit.collider == null) {
+                nextMove.x = -0.01f*playerSpeed;
+                player.transform.localScale = new Vector3(1,1,1);
+            }
         }
         if (Input.GetKey("s")) {
-            nextMove.y = -0.01f*playerSpeed;
+            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.down, 0.5f, LayerMask.GetMask("obstacles"));
+            //Debug.DrawRay(player.transform.position, Vector2.down*0.5f, Color.red);
+            if (hit.collider == null) nextMove.y = -0.01f*playerSpeed;
         }
         if (Input.GetKey("d")) {
-            nextMove.x = 0.01f*playerSpeed;
-            player.transform.localScale = new Vector3(-1,1,1);
+            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.right, 0.5f, LayerMask.GetMask("obstacles"));
+            //Debug.DrawRay(player.transform.position, Vector2.right*0.5f, Color.red);
+            if (hit.collider == null) {
+                nextMove.x = 0.01f*playerSpeed;
+                player.transform.localScale = new Vector3(-1,1,1);
+            }
         }
         move();
     }
@@ -90,24 +103,33 @@ public class Main : MonoBehaviour
 
     void updateSortingOrder() {
         SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
-        sr.sortingOrder = (int)player.transform.position.y * -1;
+        sr.sortingOrder = Mathf.RoundToInt(player.transform.position.y) * -1;
     }
 
     void initEntities() {
+        initPlayer();
+        initObstacles();
+    }
+
+    void initObstacles() {
+        obstacles = new GameObject[1];
+
         byte[] b_tree = File.ReadAllBytes("Assets/Entities/tree1.png");
         Texture2D t_tree = new Texture2D(10,10);
         t_tree.LoadImage(b_tree);
         t_tree.filterMode = FilterMode.Point;
         Sprite s_tree = Sprite.Create(t_tree, new Rect(0,0,t_tree.width,t_tree.height),new Vector2(0f, 0f),10);
         GameObject firstTree = new GameObject("tree");
-        firstTree.layer = 5;
+        firstTree.layer = 10;
+        firstTree.SetActive(false);
         SpriteRenderer sr = firstTree.AddComponent<SpriteRenderer>() as SpriteRenderer;
         sr.sprite = s_tree;
-        sr.sortingOrder = (int)firstTree.transform.position.y * -1;
         BoxCollider2D collider = firstTree.AddComponent<BoxCollider2D>() as BoxCollider2D;
-        Rigidbody2D rb = firstTree.AddComponent<Rigidbody2D>() as Rigidbody2D;
-        rb.gravityScale = 0f;
-        rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        collider.size = new Vector2(1,1);
+        //Rigidbody2D rb = firstTree.AddComponent<Rigidbody2D>() as Rigidbody2D;
+        //rb.gravityScale = 0f;
+        //rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        obstacles[0] = firstTree;
     }
 
     void move() {
@@ -145,8 +167,25 @@ public class Main : MonoBehaviour
     void loadChunkAtTree(Quadtree q) {
         if (!q.loaded) {
             addRandomGrassAtChunk(q.area);
+            placeObstacles(q.area);
             q.loaded = true;
         }
+    }
+
+    void placeObstacles(BoundsInt area) {
+        List<Obstacle> os = new List<Obstacle>();
+        for (int i = 0; i < 20; i++) {
+            os.Add(spawnObstacleAt(new Vector2Int(Random.Range(area.x,area.xMax),Random.Range(area.y,area.yMax)),Random.Range(0,obstacles.Length)));
+        }
+        getTreeFromPos(area.min).obstacles = os;
+    }
+
+    Obstacle spawnObstacleAt(Vector2Int pos, int type) {
+        GameObject newO = Object.Instantiate(obstacles[type]);
+        newO.transform.position = new Vector3((float)pos.x,(float)pos.y,0.5f);
+        newO.GetComponent<SpriteRenderer>().sortingOrder = (int)newO.transform.position.y * -1;
+        newO.SetActive(true);
+        return new Obstacle(pos,type);
     }
 
     Quadtree getTreeFromPos(Vector3 p) {
@@ -225,9 +264,9 @@ public class Main : MonoBehaviour
         sr.sprite = s_player;
         sr.sortingOrder = 1;
         BoxCollider2D collider = player.AddComponent<BoxCollider2D>() as BoxCollider2D;
-        Rigidbody2D rb = player.AddComponent<Rigidbody2D>() as Rigidbody2D;
-        rb.gravityScale = 0f;
-        rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        //Rigidbody2D rb = player.AddComponent<Rigidbody2D>() as Rigidbody2D;
+        //rb.gravityScale = 0f;
+        //rb.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 
     void initTiles() {
