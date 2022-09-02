@@ -21,6 +21,7 @@ public class Main : MonoBehaviour
     Quadtree lastTree;
 
     public GameObject[] obstacles;
+    public int obstaclesPerTile;
 
     public static int time;
 
@@ -38,6 +39,8 @@ public class Main : MonoBehaviour
         initEntities();
         nextMove = new Vector3(0,0,0);
         playerSpeed = 1;
+
+        obstaclesPerTile = 50;
 
         time = 0;
 
@@ -116,8 +119,12 @@ public class Main : MonoBehaviour
     }
 
     void initObstacles() {
-        obstacles = new GameObject[1];
+        obstacles = new GameObject[2];
+        initTreeObs();
+        initStoneObs();
+    }
 
+    void initTreeObs() {
         byte[] b_tree = File.ReadAllBytes("Assets/Entities/tree1.png");
         Texture2D t_tree = new Texture2D(10,10);
         t_tree.LoadImage(b_tree);
@@ -130,10 +137,24 @@ public class Main : MonoBehaviour
         sr.sprite = s_tree;
         BoxCollider2D collider = firstTree.AddComponent<BoxCollider2D>() as BoxCollider2D;
         collider.size = new Vector2(1,1);
-        //Rigidbody2D rb = firstTree.AddComponent<Rigidbody2D>() as Rigidbody2D;
-        //rb.gravityScale = 0f;
-        //rb.constraints = RigidbodyConstraints2D.FreezeAll;
         obstacles[0] = firstTree;
+    }
+
+    void initStoneObs() {
+        byte[] b_stone = File.ReadAllBytes("Assets/Entities/stone1.png");
+        Texture2D t_stone = new Texture2D(10,10);
+        t_stone.LoadImage(b_stone);
+        t_stone.wrapMode = TextureWrapMode.Clamp;
+        t_stone.filterMode = FilterMode.Point;
+        Sprite s_tree = Sprite.Create(t_stone, new Rect(0,0,t_stone.width,t_stone.height),new Vector2(0f, 0f),10);
+        GameObject firstStone = new GameObject("stone");
+        firstStone.layer = 10;
+        firstStone.SetActive(false);
+        SpriteRenderer sr = firstStone.AddComponent<SpriteRenderer>() as SpriteRenderer;
+        sr.sprite = s_tree;
+        BoxCollider2D collider = firstStone.AddComponent<BoxCollider2D>() as BoxCollider2D;
+        collider.size = new Vector2(1,1);
+        obstacles[1] = firstStone;
     }
 
     void move() {
@@ -215,7 +236,7 @@ public class Main : MonoBehaviour
     void placeObstacles(Quadtree q) {
         BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
-        for (int i = 0; i < 20; i++) {
+        for (int i = 0; i < obstaclesPerTile; i++) {
             os.Add(spawnObstacleAt(new Vector2Int(Random.Range(area.x,area.xMax),Random.Range(area.y,area.yMax)),Random.Range(0,obstacles.Length)));
         }
         q.obstacles = os;
