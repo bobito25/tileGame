@@ -65,26 +65,26 @@ public class Main : MonoBehaviour
         if (Input.GetKey("w")) {
             RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.up, 0.3f, LayerMask.GetMask("obstacles"));
             //Debug.DrawRay(player.transform.position, Vector2.up*0.5f, Color.red);
-            if (hit.collider == null) nextMove.y = 0.01f*playerSpeed;
+            if (hit.collider == null) nextMove.y = 0.01f*playerSpeed*Time.deltaTime*1000;
         }
         if (Input.GetKey("a")) {
             RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.left, 0.5f, LayerMask.GetMask("obstacles"));
             //Debug.DrawRay(player.transform.position, Vector2.left*0.5f, Color.red);
             if (hit.collider == null) {
-                nextMove.x = -0.01f*playerSpeed;
+                nextMove.x = -0.01f*playerSpeed*Time.deltaTime*1000;
                 player.transform.localScale = new Vector3(1,1,1);
             }
         }
         if (Input.GetKey("s")) {
             RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.down, 0.5f, LayerMask.GetMask("obstacles"));
             //Debug.DrawRay(player.transform.position, Vector2.down*0.5f, Color.red);
-            if (hit.collider == null) nextMove.y = -0.01f*playerSpeed;
+            if (hit.collider == null) nextMove.y = -0.01f*playerSpeed*Time.deltaTime*1000;
         }
         if (Input.GetKey("d")) {
             RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.right, 0.5f, LayerMask.GetMask("obstacles"));
             //Debug.DrawRay(player.transform.position, Vector2.right*0.5f, Color.red);
             if (hit.collider == null) {
-                nextMove.x = 0.01f*playerSpeed;
+                nextMove.x = 0.01f*playerSpeed*Time.deltaTime*1000;
                 player.transform.localScale = new Vector3(-1,1,1);
             }
         }
