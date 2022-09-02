@@ -16,6 +16,7 @@ public class Quadtree
     public bool empty;
     public bool loaded;
     public List<Obstacle> obstacles;
+    public bool obstaclesLoaded;
 
     public Quadtree(Quadtree p, BoundsInt a) {
         parent = p;
@@ -28,6 +29,7 @@ public class Quadtree
         }
         empty = true;
         loaded = false;
+        obstaclesLoaded = false;
     }
 
     public Quadtree getTreeFromPos(Vector3Int p) {
@@ -45,6 +47,15 @@ public class Quadtree
         } else {
             return this;
         }
+    }
+
+    public void unloadObstacles() {
+        List<GameObject> toDelete = new List<GameObject>();
+        foreach (Obstacle o in obstacles) {
+            o.gameObject.SetActive(false);
+            //Destroy(o.gameObject);
+        }
+        this.obstaclesLoaded = false;
     }
 
     public void split() {
@@ -77,6 +88,6 @@ public class Quadtree
         if (obstacles == null) {
             obstacles = new List<Obstacle>();
         }
-        obstacles.Add(new Obstacle(p,t));
+        obstacles.Add(new Obstacle(p,t,null));
     }
 }

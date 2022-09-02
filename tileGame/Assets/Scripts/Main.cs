@@ -91,12 +91,16 @@ public class Main : MonoBehaviour
     void FixedUpdate()
     {
         time++;
+        
         if (time % 10 == 0) {
-            if (lastTree != getTreeFromPos(player.transform.position)) {
+            bool newChunk = lastTree != getTreeFromPos(player.transform.position);
+            if (newChunk) {
                 loadChunksAtPlayerPos();
-                lastTree = getTreeFromPos(player.transform.position);
+                unloadChunksAroundPlayerPos();
             }
+            if (newChunk) lastTree = getTreeFromPos(player.transform.position);
         }
+        
         updateSortingOrder();
         //if (time % 100 == 0) drawAllTrees();
     }
@@ -164,20 +168,63 @@ public class Main : MonoBehaviour
         loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,0,0)));
     }
 
-    void loadChunkAtTree(Quadtree q) {
-        if (!q.loaded) {
-            addRandomGrassAtChunk(q.area);
-            placeObstacles(q.area);
-            q.loaded = true;
+    void unloadChunksAroundPlayerPos() {
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,0,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize*2,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,0,0)));
+        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize,0)));
+    }
+
+    void unloadChunkAtTree(Quadtree q) {
+        if (q.loaded) {
+            q.unloadObstacles();
         }
     }
 
-    void placeObstacles(BoundsInt area) {
+    void loadChunkAtTree(Quadtree q) {
+        if (!q.loaded) {
+            addRandomGrassAtChunk(q.area);
+            q.loaded = true;
+            placeObstacles(q);
+            q.obstaclesLoaded = true;
+        } else if (!q.obstaclesLoaded) {
+            replaceObstacles(q);
+            q.obstaclesLoaded = true;
+        }
+    }
+
+    void unloadObstaclesAtTree(Quadtree q) {
+        if (q.obstaclesLoaded) {
+            q.unloadObstacles();
+            q.obstaclesLoaded = false;
+        }
+    }
+
+    void placeObstacles(Quadtree q) {
+        BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
         for (int i = 0; i < 20; i++) {
             os.Add(spawnObstacleAt(new Vector2Int(Random.Range(area.x,area.xMax),Random.Range(area.y,area.yMax)),Random.Range(0,obstacles.Length)));
         }
-        getTreeFromPos(area.min).obstacles = os;
+        q.obstacles = os;
+    }
+
+    void replaceObstacles(Quadtree q) {
+        foreach (Obstacle o in q.obstacles) {
+            o.gameObject.SetActive(true);
+        }
     }
 
     Obstacle spawnObstacleAt(Vector2Int pos, int type) {
@@ -185,7 +232,7 @@ public class Main : MonoBehaviour
         newO.transform.position = new Vector3((float)pos.x,(float)pos.y,0.5f);
         newO.GetComponent<SpriteRenderer>().sortingOrder = (int)newO.transform.position.y * -1;
         newO.SetActive(true);
-        return new Obstacle(pos,type);
+        return new Obstacle(pos,type,newO);
     }
 
     Quadtree getTreeFromPos(Vector3 p) {
