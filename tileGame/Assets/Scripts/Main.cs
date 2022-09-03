@@ -4,6 +4,17 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.IO;
 
+/*
+
+TODO:
+
+-- optimize placing obstacles (current implementation keeps randomly placing until no overlap -> inefficient for large num of obstacles in chunk)
+ -> kinda done: will try to place 3 times before giving up
+
+-- make trees spawn in groups (sometimes?)
+
+*/
+
 public class Main : MonoBehaviour
 {
     GameObject g_map;
@@ -11,7 +22,7 @@ public class Main : MonoBehaviour
     public Tile[] tiles;
     public Quadtree topTree;
 
-    public static int chunkSize = 50; //length of one side
+    public static int chunkSize = 25; //length of one side
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
 
@@ -40,13 +51,14 @@ public class Main : MonoBehaviour
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
-        obstaclesPerTile = 50;
+        obstaclesPerTile = 150;
 
         time = 0;
 
         Camera.main.orthographicSize = 10;
         
         loadChunksAtPlayerPos();
+        removeObstaclesAtPlayerPos();
         lastTree = getTreeFromPos(player.transform.position);
         
         //drawAllTrees();
@@ -237,9 +249,26 @@ public class Main : MonoBehaviour
         BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
         for (int i = 0; i < obstaclesPerTile; i++) {
-            os.Add(spawnObstacleAt(new Vector2Int(Random.Range(area.x,area.xMax),Random.Range(area.y,area.yMax)),Random.Range(0,obstacles.Length)));
+            placeObstacle(area,os,3);
         }
         q.obstacles = os;
+    }
+
+    void placeObstacle(BoundsInt area, List<Obstacle> os, int tryNum) {
+        if (tryNum == 0) return;
+        Vector2Int pos = new Vector2Int(Random.Range(area.x,area.xMax),Random.Range(area.y,area.yMax));
+        if (checkFree(pos, os)) {
+            os.Add(spawnObstacleAt(pos,Random.Range(0,obstacles.Length)));
+        } else {
+            placeObstacle(area,os,tryNum-1);
+        }
+    }
+
+    bool checkFree(Vector2Int pos, List<Obstacle> os) {
+        foreach (Obstacle o in os) {
+            if (o.pos == pos)  return false;
+        }
+        return true;
     }
 
     void replaceObstacles(Quadtree q) {
@@ -254,6 +283,23 @@ public class Main : MonoBehaviour
         newO.GetComponent<SpriteRenderer>().sortingOrder = (int)newO.transform.position.y * -1;
         newO.SetActive(true);
         return new Obstacle(pos,type,newO);
+    }
+
+    void removeObstaclesAtPlayerPos() {
+        removeObstaclesAtPos(player.transform.position);
+    }
+
+    void removeObstaclesAtPos(Vector3 pos) {
+        Quadtree q = getTreeFromPos(pos);
+        Vector2Int pos2 = new Vector2Int((int)pos.x,(int)pos.y);
+        BoundsInt bi = new BoundsInt();
+        bi.SetMinMax(new Vector3Int(pos2.x-1,pos2.y-1,0),new Vector3Int(pos2.x+1,pos2.y+1,1));
+        for (int i = 0; i < q.obstacles.Count; i++) {
+            if (bi.Contains(new Vector3Int(q.obstacles[i].pos.x,q.obstacles[i].pos.y,0))) {
+                Destroy(q.obstacles[i].gameObject);
+                q.obstacles.RemoveAt(i);
+            }
+        }
     }
 
     Quadtree getTreeFromPos(Vector3 p) {
