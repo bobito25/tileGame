@@ -38,7 +38,7 @@ public class Main : MonoBehaviour
         initTrees();
         initEntities();
         nextMove = new Vector3(0,0,0);
-        playerSpeed = 1;
+        playerSpeed = 10;
 
         obstaclesPerTile = 50;
 
@@ -63,30 +63,18 @@ public class Main : MonoBehaviour
             addRandomGrassAtBlock(-chunkSize/2,-chunkSize/2,chunkSize/2,chunkSize/2);
         }
         if (Input.GetKey("w")) {
-            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.up, 0.3f, LayerMask.GetMask("obstacles"));
-            //Debug.DrawRay(player.transform.position, Vector2.up*0.5f, Color.red);
-            if (hit.collider == null) nextMove.y = 0.01f*playerSpeed*Time.deltaTime*1000;
+            nextMove.y = 1;
         }
         if (Input.GetKey("a")) {
-            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.left, 0.5f, LayerMask.GetMask("obstacles"));
-            //Debug.DrawRay(player.transform.position, Vector2.left*0.5f, Color.red);
-            if (hit.collider == null) {
-                nextMove.x = -0.01f*playerSpeed*Time.deltaTime*1000;
-                player.transform.localScale = new Vector3(1,1,1);
-            }
+            nextMove.x = -1;
+            player.transform.localScale = new Vector3(1,1,1);
         }
         if (Input.GetKey("s")) {
-            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.down, 0.5f, LayerMask.GetMask("obstacles"));
-            //Debug.DrawRay(player.transform.position, Vector2.down*0.5f, Color.red);
-            if (hit.collider == null) nextMove.y = -0.01f*playerSpeed*Time.deltaTime*1000;
+            nextMove.y = -1;
         }
         if (Input.GetKey("d")) {
-            RaycastHit2D hit = Physics2D.Raycast(player.transform.position, Vector2.right, 0.5f, LayerMask.GetMask("obstacles"));
-            //Debug.DrawRay(player.transform.position, Vector2.right*0.5f, Color.red);
-            if (hit.collider == null) {
-                nextMove.x = 0.01f*playerSpeed*Time.deltaTime*1000;
-                player.transform.localScale = new Vector3(-1,1,1);
-            }
+            nextMove.x = 1;
+            player.transform.localScale = new Vector3(-1,1,1);
         }
         move();
     }
@@ -162,8 +150,20 @@ public class Main : MonoBehaviour
     }
 
     void movePlayer() {
-        player.transform.Translate(nextMove);
-        Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+        Vector3 m = Vector3.Normalize(nextMove)*playerSpeed*Time.deltaTime;
+        Vector3 mX = new Vector3(m.x,0,0);
+        Vector3 mY = new Vector3(0,m.y,0);
+        RaycastHit2D hit = Physics2D.Raycast(player.transform.position, m, 0.5f, LayerMask.GetMask("obstacles"));
+        if (hit.collider == null) {
+            player.transform.Translate(m);
+            Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+        } else if (Physics2D.Raycast(player.transform.position, mX, 0.5f, LayerMask.GetMask("obstacles")).collider == null) {
+            player.transform.Translate(mX);
+            Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+        } else if (Physics2D.Raycast(player.transform.position, mY, 0.5f, LayerMask.GetMask("obstacles")).collider == null) {
+            player.transform.Translate(mY);
+            Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+        }
     }
 
     void resetMove() {
