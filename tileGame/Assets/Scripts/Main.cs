@@ -13,6 +13,8 @@ TODO:
 
 -- make trees spawn in groups (sometimes?)
 
+-- add biomes etc.
+
 */
 
 public class Main : MonoBehaviour
@@ -22,7 +24,7 @@ public class Main : MonoBehaviour
     public Tile[] tiles;
     public Quadtree topTree;
 
-    public static int chunkSize = 25; //length of one side
+    public static int chunkSize = 20; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
 
@@ -51,7 +53,7 @@ public class Main : MonoBehaviour
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
-        obstaclesPerTile = 150;
+        obstaclesPerTile = 10;
 
         time = 0;
 
@@ -187,6 +189,7 @@ public class Main : MonoBehaviour
         BoundsInt bi = new BoundsInt();
         bi.SetMinMax(new Vector3Int(-chunkSize/2,-chunkSize/2,0), new Vector3Int(chunkSize/2,chunkSize/2,1));
         topTree = new Chunk(null,bi);
+        ((Chunk)topTree).tempLevel = 0;
     }
 
     void loadChunksAtPlayerPos() {
@@ -335,6 +338,14 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[2] = old;
+                if (old.level > 1) {
+                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
+                    setTopTreeTempOffset();
+                } else {
+                    topTree.tempOffset = 0;
+                }
             } else {
                 //top right of new
                 Quadtree old = topTree;
@@ -345,6 +356,14 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[1] = old;
+                if (old.level > 1) {
+                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
+                    setTopTreeTempOffset();
+                } else {
+                    topTree.tempOffset = 0;
+                }
             }
         } else {
             if (p.y > topTree.area.center.y) {
@@ -357,6 +376,14 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[3] = old;
+                if (old.level > 1) {
+                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
+                    setTopTreeTempOffset();
+                } else {
+                    topTree.tempOffset = 0;
+                }
             } else {
                 //top left of new
                 Quadtree old = topTree;
@@ -367,8 +394,33 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[0] = old;
+                if (old.level > 1) {
+                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
+                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
+                    setTopTreeTempOffset();
+                } else {
+                    topTree.tempOffset = 0;
+                }
             }
         }
+    }
+
+    void setTopTreeTempOffset() {
+        int t = 0;
+        foreach (Quadtree c in topTree.children) t += c.tempOffset;
+        if (t > 0) {
+            topTree.tempOffset = 1;
+        } else if (t < 0) {
+            topTree.tempOffset = -1;
+        } else {
+            topTree.tempOffset = 0;
+        }
+    }
+
+    int weightedRandOffset(int o) {
+        int[] a = {-1,0,1,o};
+        return a[Random.Range(0,4)];
     }
 
     void initPlayer() {

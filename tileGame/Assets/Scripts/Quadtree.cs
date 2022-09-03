@@ -15,6 +15,8 @@ public class Quadtree
     public int level;
     public bool empty;
 
+    public int tempOffset; // -1,0,1
+
     public Quadtree(Quadtree p, BoundsInt a) {
         parent = p;
         children = new Quadtree[4];

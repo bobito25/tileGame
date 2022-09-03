@@ -8,6 +8,10 @@ public class Chunk : Quadtree
     List<Obstacle> obstacles;
     bool obstaclesLoaded;
 
+    public int tempLevel;
+    static int minTempLevel = -3;
+    static int maxTempLevel = 3;
+
     public Chunk(Quadtree p, BoundsInt a) : base(p,a) {
         loaded = false;
         obstaclesLoaded = false;
