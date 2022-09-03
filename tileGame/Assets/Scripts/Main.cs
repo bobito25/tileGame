@@ -62,17 +62,17 @@ public class Main : MonoBehaviour
         if (Input.GetMouseButtonDown(0)) {
             addRandomGrassAtBlock(-chunkSize/2,-chunkSize/2,chunkSize/2,chunkSize/2);
         }
-        if (Input.GetKey("w")) {
+        if (Input.GetKey("w") || Input.GetKey("up")) {
             nextMove.y = 1;
         }
-        if (Input.GetKey("a")) {
+        if (Input.GetKey("a") || Input.GetKey("left")) {
             nextMove.x = -1;
             player.transform.localScale = new Vector3(1,1,1);
         }
-        if (Input.GetKey("s")) {
+        if (Input.GetKey("s") || Input.GetKey("down")) {
             nextMove.y = -1;
         }
-        if (Input.GetKey("d")) {
+        if (Input.GetKey("d") || Input.GetKey("right")) {
             nextMove.x = 1;
             player.transform.localScale = new Vector3(-1,1,1);
         }
