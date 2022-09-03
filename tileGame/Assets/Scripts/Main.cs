@@ -186,7 +186,7 @@ public class Main : MonoBehaviour
     void initTrees() {
         BoundsInt bi = new BoundsInt();
         bi.SetMinMax(new Vector3Int(-chunkSize/2,-chunkSize/2,0), new Vector3Int(chunkSize/2,chunkSize/2,1));
-        topTree =  new Quadtree(null,bi);
+        topTree = new Chunk(null,bi);
     }
 
     void loadChunksAtPlayerPos() {
@@ -220,38 +220,40 @@ public class Main : MonoBehaviour
         unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize,0)));
     }
 
-    void unloadChunkAtTree(Quadtree q) {
-        if (q.loaded) {
+    void unloadChunkAtTree(Chunk q) {
+        if (q.getLoaded()) {
             q.unloadObstacles();
         }
     }
 
-    void loadChunkAtTree(Quadtree q) {
-        if (!q.loaded) {
+    void loadChunkAtTree(Chunk q) {
+        //Debug.Log(q.area);
+        //Debug.Log(q.level);
+        if (!q.getLoaded()) {
             addRandomGrassAtChunk(q.area);
-            q.loaded = true;
+            q.setLoaded(true);
             placeObstacles(q);
-            q.obstaclesLoaded = true;
-        } else if (!q.obstaclesLoaded) {
+            q.setObstaclesLoaded(true);
+        } else if (!q.getObstaclesLoaded()) {
             replaceObstacles(q);
-            q.obstaclesLoaded = true;
+            q.setObstaclesLoaded(true);
         }
     }
 
-    void unloadObstaclesAtTree(Quadtree q) {
-        if (q.obstaclesLoaded) {
+    void unloadObstaclesAtTree(Chunk q) {
+        if (q.getObstaclesLoaded()) {
             q.unloadObstacles();
-            q.obstaclesLoaded = false;
+            q.setObstaclesLoaded(false);
         }
     }
 
-    void placeObstacles(Quadtree q) {
+    void placeObstacles(Chunk q) {
         BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
         for (int i = 0; i < obstaclesPerTile; i++) {
             placeObstacle(area,os,3);
         }
-        q.obstacles = os;
+        q.setObstacles(os);
     }
 
     void placeObstacle(BoundsInt area, List<Obstacle> os, int tryNum) {
@@ -271,8 +273,8 @@ public class Main : MonoBehaviour
         return true;
     }
 
-    void replaceObstacles(Quadtree q) {
-        foreach (Obstacle o in q.obstacles) {
+    void replaceObstacles(Chunk q) {
+        foreach (Obstacle o in q.getObstacles()) {
             o.gameObject.SetActive(true);
         }
     }
@@ -290,33 +292,35 @@ public class Main : MonoBehaviour
     }
 
     void removeObstaclesAtPos(Vector3 pos) {
-        Quadtree q = getTreeFromPos(pos);
+        Chunk q = getTreeFromPos(pos);
         Vector2Int pos2 = new Vector2Int((int)pos.x,(int)pos.y);
         BoundsInt bi = new BoundsInt();
         bi.SetMinMax(new Vector3Int(pos2.x-1,pos2.y-1,0),new Vector3Int(pos2.x+1,pos2.y+1,1));
-        for (int i = 0; i < q.obstacles.Count; i++) {
-            if (bi.Contains(new Vector3Int(q.obstacles[i].pos.x,q.obstacles[i].pos.y,0))) {
-                Destroy(q.obstacles[i].gameObject);
-                q.obstacles.RemoveAt(i);
+        List<Obstacle> os = q.getObstacles();
+        for (int i = 0; i < os.Count; i++) {
+            if (bi.Contains(new Vector3Int(os[i].pos.x,os[i].pos.y,0))) {
+                Destroy(q.getObstacles()[i].gameObject);
+                q.getObstacles().RemoveAt(i);
             }
         }
+        q.setObstacles(os);
     }
 
-    Quadtree getTreeFromPos(Vector3 p) {
+    Chunk getTreeFromPos(Vector3 p) {
         Vector3Int pi = Vector3Int.FloorToInt(p);
         if (topTree.area.Contains(pi)) {
-            return topTree.getTreeFromPos(pi);
+            return (Chunk)topTree.getTreeFromPos(pi);
         }
         extendTree(p);
-        return topTree.getTreeFromPos(pi);
+        return (Chunk)topTree.getTreeFromPos(pi);
     }
 
-    Quadtree getTreeFromPos(Vector3Int p) {
+    Chunk getTreeFromPos(Vector3Int p) {
         if (topTree.area.Contains(p)) {
-            return topTree.getTreeFromPos(p);
+            return (Chunk)topTree.getTreeFromPos(p);
         }
         extendTree(p);
-        return topTree.getTreeFromPos(p);
+        return (Chunk)topTree.getTreeFromPos(p);
     }
 
     void extendTree(Vector3 p) {
