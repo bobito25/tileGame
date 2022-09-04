@@ -15,6 +15,11 @@ TODO:
 
 -- add biomes etc.
 
+-- option to show tempOffsets/tempLevels as colored chunks
+
+-- implement neighours for chunks
+ -> done?: loaded chunks see neighbouring loaded chunks as neighbours
+
 */
 
 public class Main : MonoBehaviour
@@ -193,15 +198,58 @@ public class Main : MonoBehaviour
     }
 
     void loadChunksAtPlayerPos() {
-        loadChunkAtTree(getTreeFromPos(player.transform.position));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,0,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize,0)));
-        loadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,0,0)));
+        Chunk cur = getTreeFromPos(player.transform.position);
+        loadChunkAtTree(cur);
+        Chunk[] n = new Chunk[8];
+        n[0] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize,0));
+        loadChunkAtTree(n[0]);
+        n[1] = getTreeFromPos(player.transform.position + new Vector3(0,chunkSize,0));
+        loadChunkAtTree(n[1]);
+        n[2] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize,0));
+        loadChunkAtTree(n[2]);
+        n[3] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,0,0));
+        loadChunkAtTree(n[3]);
+        n[4] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize,0));
+        loadChunkAtTree(n[4]);
+        n[5] = getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize,0));
+        loadChunkAtTree(n[5]);
+        n[6] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize,0));
+        loadChunkAtTree(n[6]);
+        n[7] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,0,0));
+        loadChunkAtTree(n[7]);
+        n[0].addNeighbour(n[1],3);
+        n[0].addNeighbour(cur,4);
+        n[0].addNeighbour(n[7],5);
+        n[1].addNeighbour(n[2],3);
+        n[1].addNeighbour(n[3],4);
+        n[1].addNeighbour(cur,5);
+        n[1].addNeighbour(n[7],6);
+        n[1].addNeighbour(n[0],7);
+        n[2].addNeighbour(n[3],5);
+        n[2].addNeighbour(cur,6);
+        n[2].addNeighbour(n[1],7);
+        n[3].addNeighbour(n[4],5);
+        n[3].addNeighbour(n[5],6);
+        n[3].addNeighbour(cur,7);
+        n[3].addNeighbour(n[1],0);
+        n[3].addNeighbour(n[2],1);
+        n[4].addNeighbour(n[5],7);
+        n[4].addNeighbour(cur,0);
+        n[4].addNeighbour(n[3],1);
+        n[5].addNeighbour(n[6],7);
+        n[5].addNeighbour(n[7],0);
+        n[5].addNeighbour(cur,1);
+        n[5].addNeighbour(n[3],2);
+        n[5].addNeighbour(n[4],3);
+        n[6].addNeighbour(n[7],1);
+        n[6].addNeighbour(cur,2);
+        n[6].addNeighbour(n[5],3);
+        n[7].addNeighbour(n[0],1);
+        n[7].addNeighbour(n[1],2);
+        n[7].addNeighbour(cur,3);
+        n[7].addNeighbour(n[5],4);
+        n[7].addNeighbour(n[6],5);
+        cur.neighbours = n;
     }
 
     void unloadChunksAroundPlayerPos() {
@@ -230,8 +278,6 @@ public class Main : MonoBehaviour
     }
 
     void loadChunkAtTree(Chunk q) {
-        //Debug.Log(q.area);
-        //Debug.Log(q.level);
         if (!q.getLoaded()) {
             addRandomGrassAtChunk(q.area);
             q.setLoaded(true);

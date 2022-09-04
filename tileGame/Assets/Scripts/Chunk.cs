@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Chunk : Quadtree
 {
+    public Chunk[] neighbours;
+
     bool loaded;
     List<Obstacle> obstacles;
     bool obstaclesLoaded;
@@ -15,6 +17,7 @@ public class Chunk : Quadtree
     public Chunk(Quadtree p, BoundsInt a) : base(p,a) {
         loaded = false;
         obstaclesLoaded = false;
+        neighbours = new Chunk[8];
     }
     
     public new void unloadObstacles() {
@@ -31,6 +34,10 @@ public class Chunk : Quadtree
             obstacles = new List<Obstacle>();
         }
         obstacles.Add(new Obstacle(p,t,null));
+    }
+
+    public void addNeighbour(Chunk c, int n) {
+        if (neighbours[n] == null) neighbours[n] = c;
     }
 
     public new bool getLoaded() {
