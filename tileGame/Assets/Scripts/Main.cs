@@ -68,7 +68,7 @@ public class Main : MonoBehaviour
         removeObstaclesAtPlayerPos();
         lastTree = getTreeFromPos(player.transform.position);
         
-        //drawAllTrees();
+        drawAllTrees();
         //Debug.DrawLine(new Vector3(0,0,0), new Vector3(1,1,0), Color.red, 100000000, false);
 
         //TileBase[] allTiles = map.GetTilesBlock(map.cellBounds);
@@ -107,12 +107,13 @@ public class Main : MonoBehaviour
             if (newChunk) {
                 loadChunksAtPlayerPos();
                 unloadChunksAroundPlayerPos();
+                drawAllTrees();
             }
             if (newChunk) lastTree = getTreeFromPos(player.transform.position);
         }
         
         updateSortingOrder();
-        //if (time % 100 == 0) drawAllTrees();
+        //if (time % 100 == 0) 
     }
 
     void updateSortingOrder() {
@@ -372,6 +373,13 @@ public class Main : MonoBehaviour
         return (Chunk)topTree.getTreeFromPos(p);
     }
 
+    Chunk getTreeFromPosIfExists(Vector3Int p) {
+        if (topTree.area.Contains(p)) {
+            return (Chunk)topTree.getTreeFromPosIfExists(p);
+        }
+        return null;
+    }
+
     void extendTree(Vector3 p) {
         if (p.x < topTree.area.center.x) {
             if (p.y > topTree.area.center.y) {
@@ -450,6 +458,46 @@ public class Main : MonoBehaviour
                 }
             }
         }
+    }
+
+    void setTreeTempLevel(Chunk c) {
+        updateNeighbours(c);
+        List<int> temps = new List<int>();
+        int num = 0;
+        foreach (Chunk n in c.neighbours) {
+            if (n != null && n.hasTemp && n.tempLevel != Chunk.magicBiomeTemp && !temps.Contains(n.tempLevel)) {
+                temps.Add(n.tempLevel);
+                num++;
+            }
+        }
+        int offset = c.parent.tempOffset;
+        if (num == 0) {
+            c.tempLevel = Random.Range(Chunk.minTempLevel,Chunk.maxTempLevel+1) + offset;
+        } else if (num == 1) {
+            c.tempLevel = temps[0] + offset;
+        } else if (num == 2) {
+            if (offset == 1) {
+                c.tempLevel = Mathf.Max(temps[0],temps[1]);
+            } else if (offset == -1) {
+                c.tempLevel = Mathf.Min(temps[0],temps[1]);
+            } else {
+                c.tempLevel = temps[Random.Range(0,2)];
+            }
+        } else {
+            c.tempLevel = Chunk.magicBiomeTemp;
+        }
+    }
+
+    void updateNeighbours(Chunk c) {
+        Vector3Int center = new Vector3Int((int)c.area.center.x,(int)c.area.center.y,0);
+        if (c.neighbours[0] == null) c.neighbours[0] = getTreeFromPosIfExists(center + new Vector3Int(-chunkSize,chunkSize,0));
+        if (c.neighbours[1] == null) c.neighbours[1] = getTreeFromPosIfExists(center + new Vector3Int(0,chunkSize,0));
+        if (c.neighbours[2] == null) c.neighbours[2] = getTreeFromPosIfExists(center + new Vector3Int(chunkSize,chunkSize,0));
+        if (c.neighbours[3] == null) c.neighbours[3] = getTreeFromPosIfExists(center + new Vector3Int(chunkSize,0,0));
+        if (c.neighbours[4] == null) c.neighbours[4] = getTreeFromPosIfExists(center + new Vector3Int(chunkSize,-chunkSize,0));
+        if (c.neighbours[5] == null) c.neighbours[5] = getTreeFromPosIfExists(center + new Vector3Int(0,-chunkSize,0));
+        if (c.neighbours[6] == null) c.neighbours[6] = getTreeFromPosIfExists(center + new Vector3Int(-chunkSize,-chunkSize,0));
+        if (c.neighbours[7] == null) c.neighbours[7] = getTreeFromPosIfExists(center + new Vector3Int(-chunkSize,0,0));
     }
 
     void setTopTreeTempOffset() {

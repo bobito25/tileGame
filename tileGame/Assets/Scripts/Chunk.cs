@@ -11,13 +11,17 @@ public class Chunk : Quadtree
     bool obstaclesLoaded;
 
     public int tempLevel;
-    static int minTempLevel = -3;
-    static int maxTempLevel = 3;
+    public static int minTempLevel = -3;
+    public static int maxTempLevel = 3;
+    public bool hasTemp;
+
+    public static int magicBiomeTemp = 25;
 
     public Chunk(Quadtree p, BoundsInt a) : base(p,a) {
         loaded = false;
         obstaclesLoaded = false;
         neighbours = new Chunk[8];
+        hasTemp = false;
     }
     
     public new void unloadObstacles() {

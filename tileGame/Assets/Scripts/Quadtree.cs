@@ -46,6 +46,23 @@ public class Quadtree
         }
     }
 
+    public Quadtree getTreeFromPosIfExists(Vector3Int p) {
+        if (this.level > 1) {
+            if (this.empty) {
+                return null;
+            }
+            foreach (Quadtree q in children) {
+                if (q.area.Contains(p)) {
+                    return q.getTreeFromPos(p);
+                }
+            }
+            Debug.Log("e: pos not in children (getTreeFromPosIfExists in Quadtree)");
+            return null;
+        } else {
+            return this;
+        }
+    }
+
     public void split() {
         if (this.level > 2) {
             BoundsInt bi1 = new BoundsInt();
