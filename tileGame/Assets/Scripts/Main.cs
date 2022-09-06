@@ -43,6 +43,12 @@ public class Main : MonoBehaviour
 
     public static int time;
 
+    public static GameObject[] debugChunkSquares;
+
+    public static bool debug_drawTrees = true;
+    public static bool debug_drawTempColors = true;
+
+
     // Start is called before the first frame update
     void Start()
     {
@@ -68,7 +74,9 @@ public class Main : MonoBehaviour
         removeObstaclesAtPlayerPos();
         lastTree = getTreeFromPos(player.transform.position);
         
-        drawAllTrees();
+        initDebugChunkSquares();
+        if (debug_drawTrees) drawAllTrees();
+        if (debug_drawTempColors) drawTempColors();
         //Debug.DrawLine(new Vector3(0,0,0), new Vector3(1,1,0), Color.red, 100000000, false);
 
         //TileBase[] allTiles = map.GetTilesBlock(map.cellBounds);
@@ -107,7 +115,8 @@ public class Main : MonoBehaviour
             if (newChunk) {
                 loadChunksAtPlayerPos();
                 unloadChunksAroundPlayerPos();
-                drawAllTrees();
+                if (debug_drawTrees) drawAllTrees();
+                if (debug_drawTempColors) drawTempColors();
             }
             if (newChunk) lastTree = getTreeFromPos(player.transform.position);
         }
@@ -251,6 +260,9 @@ public class Main : MonoBehaviour
         n[7].addNeighbour(n[5],4);
         n[7].addNeighbour(n[6],5);
         cur.neighbours = n;
+        foreach (Chunk c in cur.neighbours) {
+            setTreeTempLevel(c);
+        }
     }
 
     void unloadChunksAroundPlayerPos() {
@@ -392,6 +404,9 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[2] = old;
+                foreach (Quadtree q in topTree.children) {
+                    q.parent = topTree;
+                }
                 if (old.level > 1) {
                     topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
                     topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
@@ -462,6 +477,7 @@ public class Main : MonoBehaviour
 
     void setTreeTempLevel(Chunk c) {
         updateNeighbours(c);
+        if (c.hasTemp) return;
         List<int> temps = new List<int>();
         int num = 0;
         foreach (Chunk n in c.neighbours) {
@@ -625,8 +641,96 @@ public class Main : MonoBehaviour
         }
     }
 
+    void initDebugChunkSquares() {
+        Texture2D t_dcs_blue = new Texture2D(chunkSize,chunkSize);
+        Texture2D t_dcs_cyan = new Texture2D(chunkSize,chunkSize);
+        Texture2D t_dcs_green = new Texture2D(chunkSize,chunkSize);
+        Texture2D t_dcs_yellow = new Texture2D(chunkSize,chunkSize);
+        Texture2D t_dcs_red = new Texture2D(chunkSize,chunkSize);
+
+        Color[] blues = new Color[chunkSize*chunkSize];
+        Color blue = Color.blue;
+        //blue.a = 0.5f;
+        for (int i = 0; i < chunkSize*chunkSize; i++) {
+            blues[i] = blue;
+        }
+        t_dcs_blue.SetPixels(blues);
+
+        Color[] cyans = new Color[chunkSize*chunkSize];
+        Color cyan = Color.cyan;
+        //cyan.a = 0.5f;
+        for (int i = 0; i < chunkSize*chunkSize; i++) {
+            cyans[i] = cyan;
+        }
+        t_dcs_cyan.SetPixels(cyans);
+
+        Color[] greens = new Color[chunkSize*chunkSize];
+        Color green = Color.green;
+        //green.a = 0.5f;
+        for (int i = 0; i < chunkSize*chunkSize; i++) {
+            greens[i] = green;
+        }
+        t_dcs_green.SetPixels(greens);
+
+        Color[] yellows = new Color[chunkSize*chunkSize];
+        Color yellow = Color.yellow;
+        //yellow.a = 0.5f;
+        for (int i = 0; i < chunkSize*chunkSize; i++) {
+            yellows[i] = yellow;
+        }
+        t_dcs_yellow.SetPixels(yellows);
+
+        Color[] reds = new Color[chunkSize*chunkSize];
+        Color red = Color.red;
+        //red.a = 0.5f;
+        for (int i = 0; i < chunkSize*chunkSize; i++) {
+            reds[i] = red;
+        }
+        t_dcs_red.SetPixels(reds);
+
+        t_dcs_green.Apply();
+        t_dcs_cyan.Apply();
+        t_dcs_blue.Apply();
+        t_dcs_yellow.Apply();
+        t_dcs_red.Apply();
+
+        t_dcs_blue.wrapMode = TextureWrapMode.Repeat;
+        t_dcs_cyan.wrapMode = TextureWrapMode.Repeat;
+        t_dcs_green.wrapMode = TextureWrapMode.Repeat;
+        t_dcs_yellow.wrapMode = TextureWrapMode.Repeat;
+        t_dcs_red.wrapMode = TextureWrapMode.Repeat;
+
+        Sprite s_dcs_blue = Sprite.Create(t_dcs_blue, new Rect(0,0,chunkSize,chunkSize),new Vector2(0, 0),1);
+        Sprite s_dcs_cyan = Sprite.Create(t_dcs_cyan, new Rect(0,0,chunkSize,chunkSize),new Vector2(0, 0),1);
+        Sprite s_dcs_green = Sprite.Create(t_dcs_green, new Rect(0,0,chunkSize,chunkSize),new Vector2(0, 0),1);
+        Sprite s_dcs_yellow = Sprite.Create(t_dcs_yellow, new Rect(0,0,chunkSize,chunkSize),new Vector2(0, 0),1);
+        Sprite s_dcs_red = Sprite.Create(t_dcs_red, new Rect(0,0,chunkSize,chunkSize),new Vector2(0, 0),1);
+
+        debugChunkSquares = new GameObject[5];
+        for (int i = 0; i < debugChunkSquares.Length; i++) {
+            debugChunkSquares[i] = new GameObject("debugSquare");
+            debugChunkSquares[i].SetActive(false);
+        }
+
+        SpriteRenderer sr1 = debugChunkSquares[0].AddComponent<SpriteRenderer>() as SpriteRenderer;
+        SpriteRenderer sr2 = debugChunkSquares[1].AddComponent<SpriteRenderer>() as SpriteRenderer;
+        SpriteRenderer sr3 = debugChunkSquares[2].AddComponent<SpriteRenderer>() as SpriteRenderer;
+        SpriteRenderer sr4 = debugChunkSquares[3].AddComponent<SpriteRenderer>() as SpriteRenderer;
+        SpriteRenderer sr5 = debugChunkSquares[4].AddComponent<SpriteRenderer>() as SpriteRenderer;
+
+        sr1.sprite = s_dcs_blue;
+        sr2.sprite = s_dcs_cyan;
+        sr3.sprite = s_dcs_green;
+        sr4.sprite = s_dcs_yellow;
+        sr5.sprite = s_dcs_red;
+    }
+
     void drawAllTrees() {
         topTree.drawAllTrees();
+    }
+
+    void drawTempColors() {
+        topTree.drawTempColors();
     }
 
     public static void DrawRect(Vector3 min, Vector3 max, Color color, float duration) {

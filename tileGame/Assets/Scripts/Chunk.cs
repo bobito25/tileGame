@@ -11,8 +11,8 @@ public class Chunk : Quadtree
     bool obstaclesLoaded;
 
     public int tempLevel;
-    public static int minTempLevel = -3;
-    public static int maxTempLevel = 3;
+    public static int minTempLevel = -2;
+    public static int maxTempLevel = 2;
     public bool hasTemp;
 
     public static int magicBiomeTemp = 25;

@@ -105,6 +105,22 @@ public class Quadtree
     void draw() {
         Main.DrawRect(new Vector3((float)this.area.x,(float)this.area.y,0), new Vector3((float)this.area.xMax,(float)this.area.yMax,0), Color.red, 100000000);
     }
+
+    public void drawTempColors() {
+        if (level > 1) {
+            foreach (Quadtree q in children) {
+                if (q != null) q.drawTempColors();
+            }
+        } else {
+            int tL = ((Chunk)this).tempLevel;
+            if (tL < Chunk.magicBiomeTemp) {
+                tL += 2;
+                GameObject dcs = Object.Instantiate(Main.debugChunkSquares[tL]);
+                dcs.transform.position = area.min;
+                dcs.SetActive(true);
+            }
+        }
+    }
     
     public void unloadObstacles() {
         Debug.Log("e: tried to use unloadObstacles func of Quadtree (unloadObstacles in Quadtree)");
