@@ -47,6 +47,7 @@ public class Main : MonoBehaviour
 
     public static bool debug_drawTrees = true;
     public static bool debug_drawTempColors = true;
+    public static bool debug_drawTempOffsets = true;
 
 
     // Start is called before the first frame update
@@ -77,6 +78,7 @@ public class Main : MonoBehaviour
         initDebugChunkSquares();
         if (debug_drawTrees) drawAllTrees();
         if (debug_drawTempColors) drawTempColors();
+        if (debug_drawTempOffsets) drawTempOffsets();
         //Debug.DrawLine(new Vector3(0,0,0), new Vector3(1,1,0), Color.red, 100000000, false);
 
         //TileBase[] allTiles = map.GetTilesBlock(map.cellBounds);
@@ -117,6 +119,7 @@ public class Main : MonoBehaviour
                 unloadChunksAroundPlayerPos();
                 if (debug_drawTrees) drawAllTrees();
                 if (debug_drawTempColors) drawTempColors();
+                if (debug_drawTempOffsets) drawTempOffsets();
             }
             if (newChunk) lastTree = getTreeFromPos(player.transform.position);
         }
@@ -205,6 +208,7 @@ public class Main : MonoBehaviour
         bi.SetMinMax(new Vector3Int(-chunkSize/2,-chunkSize/2,0), new Vector3Int(chunkSize/2,chunkSize/2,1));
         topTree = new Chunk(null,bi);
         ((Chunk)topTree).tempLevel = 0;
+        ((Chunk)topTree).hasTemp = true;
     }
 
     void loadChunksAtPlayerPos() {
@@ -260,6 +264,7 @@ public class Main : MonoBehaviour
         n[7].addNeighbour(n[5],4);
         n[7].addNeighbour(n[6],5);
         cur.neighbours = n;
+        setTreeTempLevel(cur);
         foreach (Chunk c in cur.neighbours) {
             setTreeTempLevel(c);
         }
@@ -470,6 +475,7 @@ public class Main : MonoBehaviour
                     setTopTreeTempOffset();
                 } else {
                     topTree.tempOffset = 0;
+                    Debug.Log("x");
                 }
             }
         }
@@ -488,20 +494,33 @@ public class Main : MonoBehaviour
         }
         int offset = c.parent.tempOffset;
         if (num == 0) {
-            c.tempLevel = Random.Range(Chunk.minTempLevel,Chunk.maxTempLevel+1) + offset;
+            c.tempLevel = offset;
         } else if (num == 1) {
             c.tempLevel = temps[0] + offset;
+            if (offset != 0) Debug.Log(offset);
+            if (c.tempLevel > Chunk.maxTempLevel) {
+                c.tempLevel = Chunk.maxTempLevel;
+            } else if (c.tempLevel < Chunk.minTempLevel) {
+                c.tempLevel = Chunk.minTempLevel;
+            }
         } else if (num == 2) {
-            if (offset == 1) {
-                c.tempLevel = Mathf.Max(temps[0],temps[1]);
-            } else if (offset == -1) {
-                c.tempLevel = Mathf.Min(temps[0],temps[1]);
+            int maxT = Mathf.Max(temps[0],temps[1]);
+            int minT = Mathf.Min(temps[0],temps[1]);
+            if (maxT - minT < 2) {
+                if (offset == 1) {
+                    c.tempLevel = maxT;
+                } else if (offset == -1) {
+                    c.tempLevel = minT;
+                } else {
+                    c.tempLevel = temps[Random.Range(0,2)];
+                }
             } else {
-                c.tempLevel = temps[Random.Range(0,2)];
+                c.tempLevel = (maxT+minT)/2;
             }
         } else {
             c.tempLevel = Chunk.magicBiomeTemp;
         }
+        c.hasTemp = true;
     }
 
     void updateNeighbours(Chunk c) {
@@ -658,7 +677,7 @@ public class Main : MonoBehaviour
 
         Color[] cyans = new Color[chunkSize*chunkSize];
         Color cyan = Color.cyan;
-        //cyan.a = 0.5f;
+        cyan.a = 0.5f;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             cyans[i] = cyan;
         }
@@ -666,7 +685,7 @@ public class Main : MonoBehaviour
 
         Color[] greens = new Color[chunkSize*chunkSize];
         Color green = Color.green;
-        //green.a = 0.5f;
+        green.a = 0.5f;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             greens[i] = green;
         }
@@ -674,7 +693,7 @@ public class Main : MonoBehaviour
 
         Color[] yellows = new Color[chunkSize*chunkSize];
         Color yellow = Color.yellow;
-        //yellow.a = 0.5f;
+        yellow.a = 0.5f;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             yellows[i] = yellow;
         }
@@ -682,7 +701,7 @@ public class Main : MonoBehaviour
 
         Color[] reds = new Color[chunkSize*chunkSize];
         Color red = Color.red;
-        //red.a = 0.5f;
+        red.a = 0.5f;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             reds[i] = red;
         }
@@ -733,10 +752,19 @@ public class Main : MonoBehaviour
         topTree.drawTempColors();
     }
 
+    void drawTempOffsets() {
+        topTree.drawTempOffsets();
+    }
+
     public static void DrawRect(Vector3 min, Vector3 max, Color color, float duration) {
         UnityEngine.Debug.DrawLine(min, new Vector3(min.x, max.y), color, duration);
         UnityEngine.Debug.DrawLine(new Vector3(min.x, max.y), max, color, duration);
         UnityEngine.Debug.DrawLine(max, new Vector3(max.x, min.y), color, duration);
         UnityEngine.Debug.DrawLine(min, new Vector3(max.x, min.y), color, duration);
+    }
+
+    public static void DrawX(Vector3 min, Vector3 max, Color color, float duration) {
+        UnityEngine.Debug.DrawLine(min, max, color, duration);
+        UnityEngine.Debug.DrawLine(new Vector3(min.x, max.y), new Vector3(max.x,min.y), color, duration);
     }
 }

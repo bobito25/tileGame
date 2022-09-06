@@ -112,14 +112,38 @@ public class Quadtree
                 if (q != null) q.drawTempColors();
             }
         } else {
-            int tL = ((Chunk)this).tempLevel;
-            if (tL < Chunk.magicBiomeTemp) {
-                tL += 2;
-                GameObject dcs = Object.Instantiate(Main.debugChunkSquares[tL]);
-                dcs.transform.position = area.min;
-                dcs.SetActive(true);
+            if (((Chunk)this).hasTemp) {
+                int tL = ((Chunk)this).tempLevel;
+                if (tL < Chunk.magicBiomeTemp) {
+                    tL += 2;
+                    GameObject dcs = Object.Instantiate(Main.debugChunkSquares[tL]);
+                    dcs.transform.position = area.min;
+                    dcs.SetActive(true);
+                }
             }
         }
+    }
+
+    public void drawTempOffsets() {
+        if (level == 2) {
+            drawOffset();
+        } else if (level > 2 && !empty) {
+            foreach (Quadtree c in children) {
+                c.drawTempOffsets();
+            }
+        }
+    }
+
+    void drawOffset() {
+        Color c = new Color(0,0,0,1);
+        if (tempOffset == -1) {
+            c = Color.blue;
+        } else if (tempOffset == 0) {
+            c = Color.green;
+        } else {
+            c = Color.red;
+        }
+        Main.DrawX(new Vector3((float)this.area.x,(float)this.area.y,0), new Vector3((float)this.area.xMax,(float)this.area.yMax,0), c, 100000000);
     }
     
     public void unloadObstacles() {
