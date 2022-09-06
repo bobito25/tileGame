@@ -33,6 +33,9 @@ public class Quadtree
         if (this.level > 1) {
             if (this.empty) {
                 this.split();
+                foreach (Quadtree c in children) {
+                    c.tempOffset = Main.weightedRandOffset(tempOffset);
+                }
             }
             foreach (Quadtree q in children) {
                 if (q.area.Contains(p)) {

@@ -47,7 +47,7 @@ public class Main : MonoBehaviour
 
     public static bool debug_drawTrees = true;
     public static bool debug_drawTempColors = true;
-    public static bool debug_drawTempOffsets = true;
+    public static bool debug_drawTempOffsets = false;
 
 
     // Start is called before the first frame update
@@ -475,7 +475,6 @@ public class Main : MonoBehaviour
                     setTopTreeTempOffset();
                 } else {
                     topTree.tempOffset = 0;
-                    Debug.Log("x");
                 }
             }
         }
@@ -497,7 +496,6 @@ public class Main : MonoBehaviour
             c.tempLevel = offset;
         } else if (num == 1) {
             c.tempLevel = temps[0] + offset;
-            if (offset != 0) Debug.Log(offset);
             if (c.tempLevel > Chunk.maxTempLevel) {
                 c.tempLevel = Chunk.maxTempLevel;
             } else if (c.tempLevel < Chunk.minTempLevel) {
@@ -547,7 +545,7 @@ public class Main : MonoBehaviour
         }
     }
 
-    int weightedRandOffset(int o) {
+    public static int weightedRandOffset(int o) {
         int[] a = {-1,0,1,o};
         return a[Random.Range(0,4)];
     }
@@ -667,9 +665,12 @@ public class Main : MonoBehaviour
         Texture2D t_dcs_yellow = new Texture2D(chunkSize,chunkSize);
         Texture2D t_dcs_red = new Texture2D(chunkSize,chunkSize);
 
+        float opacity = 1;
+        if (debug_drawTempOffsets) opacity = 0.5f;
+
         Color[] blues = new Color[chunkSize*chunkSize];
         Color blue = Color.blue;
-        //blue.a = 0.5f;
+        blue.a = opacity;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             blues[i] = blue;
         }
@@ -677,7 +678,7 @@ public class Main : MonoBehaviour
 
         Color[] cyans = new Color[chunkSize*chunkSize];
         Color cyan = Color.cyan;
-        cyan.a = 0.5f;
+        cyan.a = opacity;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             cyans[i] = cyan;
         }
@@ -685,7 +686,7 @@ public class Main : MonoBehaviour
 
         Color[] greens = new Color[chunkSize*chunkSize];
         Color green = Color.green;
-        green.a = 0.5f;
+        green.a = opacity;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             greens[i] = green;
         }
@@ -693,7 +694,7 @@ public class Main : MonoBehaviour
 
         Color[] yellows = new Color[chunkSize*chunkSize];
         Color yellow = Color.yellow;
-        yellow.a = 0.5f;
+        yellow.a = opacity;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             yellows[i] = yellow;
         }
@@ -701,7 +702,7 @@ public class Main : MonoBehaviour
 
         Color[] reds = new Color[chunkSize*chunkSize];
         Color red = Color.red;
-        red.a = 0.5f;
+        red.a = opacity;
         for (int i = 0; i < chunkSize*chunkSize; i++) {
             reds[i] = red;
         }
