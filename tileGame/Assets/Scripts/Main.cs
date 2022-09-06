@@ -516,7 +516,13 @@ public class Main : MonoBehaviour
                 c.tempLevel = (maxT+minT)/2;
             }
         } else {
-            c.tempLevel = Chunk.magicBiomeTemp;
+            int maxT = Mathf.Max(temps.ToArray());
+            int minT = Mathf.Min(temps.ToArray());
+            if (maxT - minT < 3) {
+                c.tempLevel = (maxT+minT)/2;
+            } else {
+                c.tempLevel = Chunk.magicBiomeTemp;
+            }
         }
         c.hasTemp = true;
     }
