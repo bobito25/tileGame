@@ -29,7 +29,7 @@ public class Main : MonoBehaviour
     public Tile[,] tiles;
     public Quadtree topTree;
 
-    public static int chunkSize = 20; //length of one side -> should be even
+    public static int chunkSize = 50; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
 
@@ -65,7 +65,7 @@ public class Main : MonoBehaviour
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
-        obstaclesPerTile = 10;
+        obstaclesPerTile = 1000;
 
         time = 0;
 
@@ -486,7 +486,7 @@ public class Main : MonoBehaviour
             }
         }
         int offset = c.parent.tempOffset;
-        if (Random.value < 0.5) {
+        if (Random.value < 0    ) {
             c.tempLevel = Chunk.magicBiomeTemp;
             c.hasTemp = true;
             return;
@@ -584,6 +584,30 @@ public class Main : MonoBehaviour
         byte[] b_m4 = File.ReadAllBytes("Assets/Tiles/magicBiome4.png");
         byte[] b_m5 = File.ReadAllBytes("Assets/Tiles/magicBiome5.png");
 
+        byte[] b_i1 = File.ReadAllBytes("Assets/Tiles/iceBiome1.png");
+        byte[] b_i2 = File.ReadAllBytes("Assets/Tiles/iceBiome2.png");
+        byte[] b_i3 = File.ReadAllBytes("Assets/Tiles/iceBiome3.png");
+        byte[] b_i4 = File.ReadAllBytes("Assets/Tiles/iceBiome4.png");
+        byte[] b_i5 = File.ReadAllBytes("Assets/Tiles/iceBiome5.png");
+
+        byte[] b_t1 = File.ReadAllBytes("Assets/Tiles/tundraBiome1.png");
+        byte[] b_t2 = File.ReadAllBytes("Assets/Tiles/tundraBiome2.png");
+        byte[] b_t3 = File.ReadAllBytes("Assets/Tiles/tundraBiome3.png");
+        byte[] b_t4 = File.ReadAllBytes("Assets/Tiles/tundraBiome4.png");
+        byte[] b_t5 = File.ReadAllBytes("Assets/Tiles/tundraBiome5.png");
+
+        byte[] b_s1 = File.ReadAllBytes("Assets/Tiles/savannaBiome1.png");
+        byte[] b_s2 = File.ReadAllBytes("Assets/Tiles/savannaBiome2.png");
+        byte[] b_s3 = File.ReadAllBytes("Assets/Tiles/savannaBiome3.png");
+        byte[] b_s4 = File.ReadAllBytes("Assets/Tiles/savannaBiome4.png");
+        byte[] b_s5 = File.ReadAllBytes("Assets/Tiles/savannaBiome5.png");
+
+        byte[] b_d1 = File.ReadAllBytes("Assets/Tiles/desertBiome1.png");
+        byte[] b_d2 = File.ReadAllBytes("Assets/Tiles/desertBiome2.png");
+        byte[] b_d3 = File.ReadAllBytes("Assets/Tiles/desertBiome3.png");
+        byte[] b_d4 = File.ReadAllBytes("Assets/Tiles/desertBiome4.png");
+        byte[] b_d5 = File.ReadAllBytes("Assets/Tiles/desertBiome5.png");
+
         Texture2D t_g1 = new Texture2D(10,10);
         Texture2D t_g2 = new Texture2D(10,10);
         Texture2D t_g3 = new Texture2D(10,10);
@@ -595,6 +619,30 @@ public class Main : MonoBehaviour
         Texture2D t_m3 = new Texture2D(10,10);
         Texture2D t_m4 = new Texture2D(10,10);
         Texture2D t_m5 = new Texture2D(10,10);
+
+        Texture2D t_i1 = new Texture2D(10,10);
+        Texture2D t_i2 = new Texture2D(10,10);
+        Texture2D t_i3 = new Texture2D(10,10);
+        Texture2D t_i4 = new Texture2D(10,10);
+        Texture2D t_i5 = new Texture2D(10,10);
+        
+        Texture2D t_t1 = new Texture2D(10,10);
+        Texture2D t_t2 = new Texture2D(10,10);
+        Texture2D t_t3 = new Texture2D(10,10);
+        Texture2D t_t4 = new Texture2D(10,10);
+        Texture2D t_t5 = new Texture2D(10,10);
+
+        Texture2D t_s1 = new Texture2D(10,10);
+        Texture2D t_s2 = new Texture2D(10,10);
+        Texture2D t_s3 = new Texture2D(10,10);
+        Texture2D t_s4 = new Texture2D(10,10);
+        Texture2D t_s5 = new Texture2D(10,10);
+
+        Texture2D t_d1 = new Texture2D(10,10);
+        Texture2D t_d2 = new Texture2D(10,10);
+        Texture2D t_d3 = new Texture2D(10,10);
+        Texture2D t_d4 = new Texture2D(10,10);
+        Texture2D t_d5 = new Texture2D(10,10);
         
         t_g1.LoadImage(b_g1);
         t_g2.LoadImage(b_g2);
@@ -608,6 +656,30 @@ public class Main : MonoBehaviour
         t_m4.LoadImage(b_m4);
         t_m5.LoadImage(b_m5);
 
+        t_i1.LoadImage(b_i1);
+        t_i2.LoadImage(b_i2);
+        t_i3.LoadImage(b_i3);
+        t_i4.LoadImage(b_i4);
+        t_i5.LoadImage(b_i5);
+
+        t_t1.LoadImage(b_t1);
+        t_t2.LoadImage(b_t2);
+        t_t3.LoadImage(b_t3);
+        t_t4.LoadImage(b_t4);
+        t_t5.LoadImage(b_t5);
+
+        t_s1.LoadImage(b_s1);
+        t_s2.LoadImage(b_s2);
+        t_s3.LoadImage(b_s3);
+        t_s4.LoadImage(b_s4);
+        t_s5.LoadImage(b_s5);
+
+        t_d1.LoadImage(b_d1);
+        t_d2.LoadImage(b_d2);
+        t_d3.LoadImage(b_d3);
+        t_d4.LoadImage(b_d4);
+        t_d5.LoadImage(b_d5);
+
         t_g1.filterMode = FilterMode.Point;
         t_g2.filterMode = FilterMode.Point;
         t_g3.filterMode = FilterMode.Point;
@@ -619,6 +691,30 @@ public class Main : MonoBehaviour
         t_m3.filterMode = FilterMode.Point;
         t_m4.filterMode = FilterMode.Point;
         t_m5.filterMode = FilterMode.Point;
+
+        t_i1.filterMode = FilterMode.Point;
+        t_i2.filterMode = FilterMode.Point;
+        t_i3.filterMode = FilterMode.Point;
+        t_i4.filterMode = FilterMode.Point;
+        t_i5.filterMode = FilterMode.Point;
+
+        t_t1.filterMode = FilterMode.Point;
+        t_t2.filterMode = FilterMode.Point;
+        t_t3.filterMode = FilterMode.Point;
+        t_t4.filterMode = FilterMode.Point;
+        t_t5.filterMode = FilterMode.Point;
+
+        t_s1.filterMode = FilterMode.Point;
+        t_s2.filterMode = FilterMode.Point;
+        t_s3.filterMode = FilterMode.Point;
+        t_s4.filterMode = FilterMode.Point;
+        t_s5.filterMode = FilterMode.Point;
+
+        t_d1.filterMode = FilterMode.Point;
+        t_d2.filterMode = FilterMode.Point;
+        t_d3.filterMode = FilterMode.Point;
+        t_d4.filterMode = FilterMode.Point;
+        t_d5.filterMode = FilterMode.Point;
 
         t_g1.wrapMode = TextureWrapMode.Clamp;
         t_g2.wrapMode = TextureWrapMode.Clamp;
@@ -632,17 +728,68 @@ public class Main : MonoBehaviour
         t_m4.wrapMode = TextureWrapMode.Clamp;
         t_m5.wrapMode = TextureWrapMode.Clamp;
 
-        Sprite s_g1 = Sprite.Create(t_g1, new Rect(0,0,t_g1.width,t_g1.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_g2 = Sprite.Create(t_g2, new Rect(0,0,t_g2.width,t_g2.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_g3 = Sprite.Create(t_g3, new Rect(0,0,t_g3.width,t_g3.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_g4 = Sprite.Create(t_g4, new Rect(0,0,t_g4.width,t_g4.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_g5 = Sprite.Create(t_g5, new Rect(0,0,t_g5.width,t_g5.height),new Vector2(0.5f, 0.5f),10);
+        t_i1.wrapMode = TextureWrapMode.Clamp;
+        t_i2.wrapMode = TextureWrapMode.Clamp;
+        t_i3.wrapMode = TextureWrapMode.Clamp;
+        t_i4.wrapMode = TextureWrapMode.Clamp;
+        t_i5.wrapMode = TextureWrapMode.Clamp;
 
-        Sprite s_m1 = Sprite.Create(t_m1, new Rect(0,0,t_m1.width,t_m1.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_m2 = Sprite.Create(t_m2, new Rect(0,0,t_m2.width,t_m2.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_m3 = Sprite.Create(t_m3, new Rect(0,0,t_m3.width,t_m3.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_m4 = Sprite.Create(t_m4, new Rect(0,0,t_m4.width,t_m4.height),new Vector2(0.5f, 0.5f),10);
-        Sprite s_m5 = Sprite.Create(t_m5, new Rect(0,0,t_m5.width,t_m5.height),new Vector2(0.5f, 0.5f),10);
+        t_t1.wrapMode = TextureWrapMode.Clamp;
+        t_t2.wrapMode = TextureWrapMode.Clamp;
+        t_t3.wrapMode = TextureWrapMode.Clamp;
+        t_t4.wrapMode = TextureWrapMode.Clamp;
+        t_t5.wrapMode = TextureWrapMode.Clamp;
+
+        t_s1.wrapMode = TextureWrapMode.Clamp;
+        t_s2.wrapMode = TextureWrapMode.Clamp;
+        t_s3.wrapMode = TextureWrapMode.Clamp;
+        t_s4.wrapMode = TextureWrapMode.Clamp;
+        t_s5.wrapMode = TextureWrapMode.Clamp;
+
+        t_d1.wrapMode = TextureWrapMode.Clamp;
+        t_d2.wrapMode = TextureWrapMode.Clamp;
+        t_d3.wrapMode = TextureWrapMode.Clamp;
+        t_d4.wrapMode = TextureWrapMode.Clamp;
+        t_d5.wrapMode = TextureWrapMode.Clamp;
+
+        Rect r = new Rect(0,0,10,10);
+        Vector2 v = new Vector2(0.5f,0.5f);
+
+        Sprite s_g1 = Sprite.Create(t_g1, r, v, 10);
+        Sprite s_g2 = Sprite.Create(t_g2, r, v, 10);
+        Sprite s_g3 = Sprite.Create(t_g3, r, v, 10);
+        Sprite s_g4 = Sprite.Create(t_g4, r, v, 10);
+        Sprite s_g5 = Sprite.Create(t_g5, r, v, 10);
+
+        Sprite s_m1 = Sprite.Create(t_m1, r, v, 10);
+        Sprite s_m2 = Sprite.Create(t_m2, r, v, 10);
+        Sprite s_m3 = Sprite.Create(t_m3, r, v, 10);
+        Sprite s_m4 = Sprite.Create(t_m4, r, v, 10);
+        Sprite s_m5 = Sprite.Create(t_m5, r, v, 10);
+
+        Sprite s_i1 = Sprite.Create(t_i1, r, v, 10);
+        Sprite s_i2 = Sprite.Create(t_i2, r, v, 10);
+        Sprite s_i3 = Sprite.Create(t_i3, r, v, 10);
+        Sprite s_i4 = Sprite.Create(t_i4, r, v, 10);
+        Sprite s_i5 = Sprite.Create(t_i5, r, v, 10);
+
+        Sprite s_t1 = Sprite.Create(t_t1, r, v, 10);
+        Sprite s_t2 = Sprite.Create(t_t2, r, v, 10);
+        Sprite s_t3 = Sprite.Create(t_t3, r, v, 10);
+        Sprite s_t4 = Sprite.Create(t_t4, r, v, 10);
+        Sprite s_t5 = Sprite.Create(t_t5, r, v, 10);
+
+        Sprite s_s1 = Sprite.Create(t_s1, r, v, 10);
+        Sprite s_s2 = Sprite.Create(t_s2, r, v, 10);
+        Sprite s_s3 = Sprite.Create(t_s3, r, v, 10);
+        Sprite s_s4 = Sprite.Create(t_s4, r, v, 10);
+        Sprite s_s5 = Sprite.Create(t_s5, r, v, 10);
+
+        Sprite s_d1 = Sprite.Create(t_d1, r, v, 10);
+        Sprite s_d2 = Sprite.Create(t_d2, r, v, 10);
+        Sprite s_d3 = Sprite.Create(t_d3, r, v, 10);
+        Sprite s_d4 = Sprite.Create(t_d4, r, v, 10);
+        Sprite s_d5 = Sprite.Create(t_d5, r, v, 10);
 
         for (int i = 0; i < tiles.GetLength(0); i++) {
             for (int j = 0; j < tiles.GetLength(1); j++) {
@@ -661,12 +808,35 @@ public class Main : MonoBehaviour
         tiles[0,2].sprite = s_m3;
         tiles[0,3].sprite = s_m4;
         tiles[0,4].sprite = s_m5;
+
+        tiles[1,0].sprite = s_i1;
+        tiles[1,1].sprite = s_i2;
+        tiles[1,2].sprite = s_i3;
+        tiles[1,3].sprite = s_i4;
+        tiles[1,4].sprite = s_i5;
+
+        tiles[2,0].sprite = s_t1;
+        tiles[2,1].sprite = s_t2;
+        tiles[2,2].sprite = s_t3;
+        tiles[2,3].sprite = s_t4;
+        tiles[2,4].sprite = s_t5;
+
+        tiles[4,0].sprite = s_s1;
+        tiles[4,1].sprite = s_s2;
+        tiles[4,2].sprite = s_s3;
+        tiles[4,3].sprite = s_s4;
+        tiles[4,4].sprite = s_s5;
+
+        tiles[5,0].sprite = s_d1;
+        tiles[5,1].sprite = s_d2;
+        tiles[5,2].sprite = s_d3;
+        tiles[5,3].sprite = s_d4;
+        tiles[5,4].sprite = s_d5;
     }
 
     Tile[] getTilesForChunk(Chunk c) {
         Tile[] tA = new Tile[c.area.size.x*c.area.size.y];
         int b = c.tempLevel + Chunk.maxTempLevel + 1;
-    b = 3;
         if (c.tempLevel == Chunk.magicBiomeTemp) b = 0;
         for (int i = 0; i < tA.Length; i++) {
             tA[i] = tiles[b,Random.Range(0,tiles.GetLength(1))];
