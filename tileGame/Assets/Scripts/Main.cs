@@ -26,7 +26,7 @@ public class Main : MonoBehaviour
 {
     GameObject g_map;
     public Tilemap map;
-    public Tile[] tiles;
+    public Tile[,] tiles;
     public Quadtree topTree;
 
     public static int chunkSize = 20; //length of one side -> should be even
@@ -45,8 +45,8 @@ public class Main : MonoBehaviour
 
     public static GameObject[] debugChunkSquares;
 
-    public static bool debug_drawTrees = true;
-    public static bool debug_drawTempColors = true;
+    public static bool debug_drawTrees = false;
+    public static bool debug_drawTempColors = false;
     public static bool debug_drawTempOffsets = false;
 
 
@@ -58,7 +58,7 @@ public class Main : MonoBehaviour
         Grid grid = g_map.AddComponent<Grid>() as Grid;
         TilemapRenderer tr = g_map.AddComponent<TilemapRenderer>() as TilemapRenderer;
         tr.sortingLayerID = SortingLayer.NameToID("mapLayer");
-        tiles = new Tile[5];
+        tiles = new Tile[Chunk.numTempLevels+1,5];
         initTiles();
         initTrees();
         initEntities();
@@ -213,24 +213,15 @@ public class Main : MonoBehaviour
 
     void loadChunksAtPlayerPos() {
         Chunk cur = getTreeFromPos(player.transform.position);
-        loadChunkAtTree(cur);
         Chunk[] n = new Chunk[8];
         n[0] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize,0));
-        loadChunkAtTree(n[0]);
         n[1] = getTreeFromPos(player.transform.position + new Vector3(0,chunkSize,0));
-        loadChunkAtTree(n[1]);
         n[2] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize,0));
-        loadChunkAtTree(n[2]);
         n[3] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,0,0));
-        loadChunkAtTree(n[3]);
         n[4] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize,0));
-        loadChunkAtTree(n[4]);
         n[5] = getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize,0));
-        loadChunkAtTree(n[5]);
         n[6] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize,0));
-        loadChunkAtTree(n[6]);
         n[7] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,0,0));
-        loadChunkAtTree(n[7]);
         n[0].addNeighbour(n[1],3);
         n[0].addNeighbour(cur,4);
         n[0].addNeighbour(n[7],5);
@@ -265,8 +256,10 @@ public class Main : MonoBehaviour
         n[7].addNeighbour(n[6],5);
         cur.neighbours = n;
         setTreeTempLevel(cur);
+        loadChunkAtTree(cur);
         foreach (Chunk c in cur.neighbours) {
             setTreeTempLevel(c);
+            loadChunkAtTree(c);
         }
     }
 
@@ -297,7 +290,8 @@ public class Main : MonoBehaviour
 
     void loadChunkAtTree(Chunk q) {
         if (!q.getLoaded()) {
-            addRandomGrassAtChunk(q.area);
+            //addRandomGrassAtChunk(q.area);
+            loadTilesAtChunk(getTilesForChunk(q),q);
             q.setLoaded(true);
             placeObstacles(q);
             q.setObstaclesLoaded(true);
@@ -492,6 +486,11 @@ public class Main : MonoBehaviour
             }
         }
         int offset = c.parent.tempOffset;
+        if (Random.value < 0.5) {
+            c.tempLevel = Chunk.magicBiomeTemp;
+            c.hasTemp = true;
+            return;
+        }
         if (num == 0) {
             c.tempLevel = offset;
         } else if (num == 1) {
@@ -579,11 +578,23 @@ public class Main : MonoBehaviour
         byte[] b_g4 = File.ReadAllBytes("Assets/Tiles/grass4.png");
         byte[] b_g5 = File.ReadAllBytes("Assets/Tiles/grass5.png");
 
+        byte[] b_m1 = File.ReadAllBytes("Assets/Tiles/magicBiome1.png");
+        byte[] b_m2 = File.ReadAllBytes("Assets/Tiles/magicBiome2.png");
+        byte[] b_m3 = File.ReadAllBytes("Assets/Tiles/magicBiome3.png");
+        byte[] b_m4 = File.ReadAllBytes("Assets/Tiles/magicBiome4.png");
+        byte[] b_m5 = File.ReadAllBytes("Assets/Tiles/magicBiome5.png");
+
         Texture2D t_g1 = new Texture2D(10,10);
         Texture2D t_g2 = new Texture2D(10,10);
         Texture2D t_g3 = new Texture2D(10,10);
         Texture2D t_g4 = new Texture2D(10,10);
         Texture2D t_g5 = new Texture2D(10,10);
+
+        Texture2D t_m1 = new Texture2D(10,10);
+        Texture2D t_m2 = new Texture2D(10,10);
+        Texture2D t_m3 = new Texture2D(10,10);
+        Texture2D t_m4 = new Texture2D(10,10);
+        Texture2D t_m5 = new Texture2D(10,10);
         
         t_g1.LoadImage(b_g1);
         t_g2.LoadImage(b_g2);
@@ -591,11 +602,23 @@ public class Main : MonoBehaviour
         t_g4.LoadImage(b_g4);
         t_g5.LoadImage(b_g5);
 
+        t_m1.LoadImage(b_m1);
+        t_m2.LoadImage(b_m2);
+        t_m3.LoadImage(b_m3);
+        t_m4.LoadImage(b_m4);
+        t_m5.LoadImage(b_m5);
+
         t_g1.filterMode = FilterMode.Point;
         t_g2.filterMode = FilterMode.Point;
         t_g3.filterMode = FilterMode.Point;
         t_g4.filterMode = FilterMode.Point;
         t_g5.filterMode = FilterMode.Point;
+
+        t_m1.filterMode = FilterMode.Point;
+        t_m2.filterMode = FilterMode.Point;
+        t_m3.filterMode = FilterMode.Point;
+        t_m4.filterMode = FilterMode.Point;
+        t_m5.filterMode = FilterMode.Point;
 
         t_g1.wrapMode = TextureWrapMode.Clamp;
         t_g2.wrapMode = TextureWrapMode.Clamp;
@@ -603,26 +626,68 @@ public class Main : MonoBehaviour
         t_g4.wrapMode = TextureWrapMode.Clamp;
         t_g5.wrapMode = TextureWrapMode.Clamp;
 
+        t_m1.wrapMode = TextureWrapMode.Clamp;
+        t_m2.wrapMode = TextureWrapMode.Clamp;
+        t_m3.wrapMode = TextureWrapMode.Clamp;
+        t_m4.wrapMode = TextureWrapMode.Clamp;
+        t_m5.wrapMode = TextureWrapMode.Clamp;
+
         Sprite s_g1 = Sprite.Create(t_g1, new Rect(0,0,t_g1.width,t_g1.height),new Vector2(0.5f, 0.5f),10);
         Sprite s_g2 = Sprite.Create(t_g2, new Rect(0,0,t_g2.width,t_g2.height),new Vector2(0.5f, 0.5f),10);
         Sprite s_g3 = Sprite.Create(t_g3, new Rect(0,0,t_g3.width,t_g3.height),new Vector2(0.5f, 0.5f),10);
         Sprite s_g4 = Sprite.Create(t_g4, new Rect(0,0,t_g4.width,t_g4.height),new Vector2(0.5f, 0.5f),10);
         Sprite s_g5 = Sprite.Create(t_g5, new Rect(0,0,t_g5.width,t_g5.height),new Vector2(0.5f, 0.5f),10);
 
-        for (int i = 0; i < tiles.Length; i++) {
-            tiles[i] = (Tile)ScriptableObject.CreateInstance("Tile");
+        Sprite s_m1 = Sprite.Create(t_m1, new Rect(0,0,t_m1.width,t_m1.height),new Vector2(0.5f, 0.5f),10);
+        Sprite s_m2 = Sprite.Create(t_m2, new Rect(0,0,t_m2.width,t_m2.height),new Vector2(0.5f, 0.5f),10);
+        Sprite s_m3 = Sprite.Create(t_m3, new Rect(0,0,t_m3.width,t_m3.height),new Vector2(0.5f, 0.5f),10);
+        Sprite s_m4 = Sprite.Create(t_m4, new Rect(0,0,t_m4.width,t_m4.height),new Vector2(0.5f, 0.5f),10);
+        Sprite s_m5 = Sprite.Create(t_m5, new Rect(0,0,t_m5.width,t_m5.height),new Vector2(0.5f, 0.5f),10);
+
+        for (int i = 0; i < tiles.GetLength(0); i++) {
+            for (int j = 0; j < tiles.GetLength(1); j++) {
+                tiles[i,j] = (Tile)ScriptableObject.CreateInstance("Tile");
+            }
         }
 
-        tiles[0].sprite = s_g1;
-        tiles[1].sprite = s_g2;
-        tiles[2].sprite = s_g3;
-        tiles[3].sprite = s_g4;
-        tiles[4].sprite = s_g5;
+        tiles[3,0].sprite = s_g1;
+        tiles[3,1].sprite = s_g2;
+        tiles[3,2].sprite = s_g3;
+        tiles[3,3].sprite = s_g4;
+        tiles[3,4].sprite = s_g5;
+
+        tiles[0,0].sprite = s_m1;
+        tiles[0,1].sprite = s_m2;
+        tiles[0,2].sprite = s_m3;
+        tiles[0,3].sprite = s_m4;
+        tiles[0,4].sprite = s_m5;
+    }
+
+    Tile[] getTilesForChunk(Chunk c) {
+        Tile[] tA = new Tile[c.area.size.x*c.area.size.y];
+        int b = c.tempLevel + Chunk.maxTempLevel + 1;
+    b = 3;
+        if (c.tempLevel == Chunk.magicBiomeTemp) b = 0;
+        for (int i = 0; i < tA.Length; i++) {
+            tA[i] = tiles[b,Random.Range(0,tiles.GetLength(1))];
+        }
+        return tA;
+    }
+
+    void loadTilesAtChunk(Tile[] tA, Chunk c) {
+        map.SetTilesBlock(c.area,tA);
+
+        foreach (var p in c.area.allPositionsWithin) {
+            int r = Random.Range(0,4);
+            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
+            map.SetTransformMatrix(p,matrix);
+            map.RefreshTile(p);
+        }
     }
 
     void addRandomGrassAt(int x, int y) {
         Vector3Int pos = new Vector3Int(x,y,0);
-        map.SetTile(pos, tiles[Random.Range(0,tiles.Length)]);
+        map.SetTile(pos, tiles[Chunk.maxTempLevel+1,Random.Range(0,tiles.GetLength(0))]);
         int r = Random.Range(0,4);
         Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
         map.SetTransformMatrix(pos,matrix);
@@ -635,7 +700,7 @@ public class Main : MonoBehaviour
 
         Tile[] tA = new Tile[pos.size.x*pos.size.y];
         for (int i = 0; i < tA.Length; i++) {
-            tA[i] = tiles[Random.Range(0,tiles.Length)];
+            tA[i] = tiles[Chunk.maxTempLevel+1,Random.Range(0,tiles.GetLength(1))];
         }
 
         map.SetTilesBlock(pos,tA);
@@ -651,7 +716,7 @@ public class Main : MonoBehaviour
     void addRandomGrassAtChunk(BoundsInt pos) {
         Tile[] tA = new Tile[pos.size.x*pos.size.y];
         for (int i = 0; i < tA.Length; i++) {
-            tA[i] = tiles[Random.Range(0,tiles.Length)];
+            tA[i] = tiles[Chunk.maxTempLevel+1,Random.Range(0,tiles.GetLength(1))];
         }
 
         map.SetTilesBlock(pos,tA);

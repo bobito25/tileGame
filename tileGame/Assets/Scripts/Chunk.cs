@@ -13,6 +13,7 @@ public class Chunk : Quadtree
     public int tempLevel;
     public static int minTempLevel = -2;
     public static int maxTempLevel = 2;
+    public static int numTempLevels = 5;
     public bool hasTemp;
 
     public static int magicBiomeTemp = 25;
