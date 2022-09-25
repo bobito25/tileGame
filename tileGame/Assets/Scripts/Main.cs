@@ -15,10 +15,14 @@ TODO:
 
 -- add biomes etc.
 
--- option to show tempOffsets/tempLevels as colored chunks
-
 -- implement neighours for chunks
  -> done?: loaded chunks see neighbouring loaded chunks as neighbours
+
+-- make player animation
+
+-- make chunk borders less defined
+
+-- turn quadtree into seperate quadtrees at a certain level and disable far away quadtrees (for performance)
 
 */
 
@@ -29,11 +33,12 @@ public class Main : MonoBehaviour
     public Tile[,] tiles;
     public Quadtree topTree;
 
-    public static int chunkSize = 50; //length of one side -> should be even
+    public static int chunkSize = 30; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
 
     public GameObject player;
+    public Animator playerAnim;
     public int playerSpeed;
     Vector3 nextMove;
     Quadtree lastTree;
@@ -65,7 +70,7 @@ public class Main : MonoBehaviour
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
-        obstaclesPerTile = 1000;
+        obstaclesPerTile = 100;
 
         time = 0;
 
@@ -183,18 +188,25 @@ public class Main : MonoBehaviour
 
     void movePlayer() {
         Vector3 m = Vector3.Normalize(nextMove)*playerSpeed*Time.deltaTime;
+        if (m.magnitude == 0) {
+            playerAnim.SetBool("moving",false);
+            return;
+        }
         Vector3 mX = new Vector3(m.x,0,0);
         Vector3 mY = new Vector3(0,m.y,0);
         RaycastHit2D hit = Physics2D.Raycast(player.transform.position, m, 0.5f, LayerMask.GetMask("obstacles"));
         if (hit.collider == null) {
             player.transform.Translate(m);
             Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+            playerAnim.SetBool("moving",true);
         } else if (Physics2D.Raycast(player.transform.position, mX, 0.5f, LayerMask.GetMask("obstacles")).collider == null) {
             player.transform.Translate(mX);
             Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+            playerAnim.SetBool("moving",true);
         } else if (Physics2D.Raycast(player.transform.position, mY, 0.5f, LayerMask.GetMask("obstacles")).collider == null) {
             player.transform.Translate(mY);
             Camera.main.transform.position = player.transform.position - new Vector3(0,0,10);
+            playerAnim.SetBool("moving",true);
         }
     }
 
@@ -561,14 +573,16 @@ public class Main : MonoBehaviour
         t_player.LoadImage(b_player);
         t_player.filterMode = FilterMode.Point;
         Sprite s_player = Sprite.Create(t_player, new Rect(0,0,t_player.width,t_player.height),new Vector2(0.5f, 0.5f),10);
-        player = new GameObject("player");
-        SpriteRenderer sr = player.AddComponent<SpriteRenderer>() as SpriteRenderer;
-        sr.sprite = s_player;
+        player = GameObject.Find("player");
+        SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
+        //sr.sprite = s_player;
         sr.sortingOrder = 1;
         BoxCollider2D collider = player.AddComponent<BoxCollider2D>() as BoxCollider2D;
         //Rigidbody2D rb = player.AddComponent<Rigidbody2D>() as Rigidbody2D;
         //rb.gravityScale = 0f;
         //rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+        playerAnim = player.GetComponent<Animator>() as Animator;
     }
 
     void initTiles() {
