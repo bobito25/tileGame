@@ -19,10 +19,13 @@ TODO:
  -> done?: loaded chunks see neighbouring loaded chunks as neighbours
 
 -- make player animation
+ -> side walk animation done?
 
 -- make chunk borders less defined
 
--- turn quadtree into seperate quadtrees at a certain level and disable far away quadtrees (for performance)
+-- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps (for performance)
+
+-- make all textures 20 x 20 like character
 
 */
 
@@ -31,11 +34,14 @@ public class Main : MonoBehaviour
     GameObject g_map;
     public Tilemap map;
     public Tile[,] tiles;
+    public Tile[] debugTiles;
     public Quadtree topTree;
 
     public static int chunkSize = 30; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
+    public static int borderSize = 3; // interpolation border (where biomes mix)
+    static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 >= x <= chunkSize/2
 
     public GameObject player;
     public Animator playerAnim;
@@ -63,10 +69,10 @@ public class Main : MonoBehaviour
         Grid grid = g_map.AddComponent<Grid>() as Grid;
         TilemapRenderer tr = g_map.AddComponent<TilemapRenderer>() as TilemapRenderer;
         tr.sortingLayerID = SortingLayer.NameToID("mapLayer");
-        tiles = new Tile[Chunk.numTempLevels+1,5];
         initTiles();
         initTrees();
         initEntities();
+        initPreCalcedFuncVals();
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
@@ -303,7 +309,7 @@ public class Main : MonoBehaviour
     void loadChunkAtTree(Chunk q) {
         if (!q.getLoaded()) {
             //addRandomGrassAtChunk(q.area);
-            loadTilesAtChunk(getTilesForChunk(q),q);
+            loadTilesAtChunk(q);
             q.setLoaded(true);
             placeObstacles(q);
             q.setObstaclesLoaded(true);
@@ -488,7 +494,10 @@ public class Main : MonoBehaviour
 
     void setTreeTempLevel(Chunk c) {
         updateNeighbours(c);
-        if (c.hasTemp) return;
+        if (c.hasTemp) {
+            updateUnloadedSides(c);
+            return;
+        }
         List<int> temps = new List<int>();
         int num = 0;
         foreach (Chunk n in c.neighbours) {
@@ -498,7 +507,7 @@ public class Main : MonoBehaviour
             }
         }
         int offset = c.parent.tempOffset;
-        if (Random.value < 0    ) {
+        if (Random.value < 0) {
             c.tempLevel = Chunk.magicBiomeTemp;
             c.hasTemp = true;
             return;
@@ -535,7 +544,11 @@ public class Main : MonoBehaviour
                 c.tempLevel = Chunk.magicBiomeTemp;
             }
         }
+        int tI = c.tempLevel + Chunk.maxTempLevel + 1;
+        if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
+        c.tempIndex = tI;
         c.hasTemp = true;
+        updateUnloadedSides(c);
     }
 
     void updateNeighbours(Chunk c) {
@@ -586,6 +599,8 @@ public class Main : MonoBehaviour
     }
 
     void initTiles() {
+        tiles = new Tile[Chunk.numTempLevels+1,5];
+
         byte[] b_g1 = File.ReadAllBytes("Assets/Tiles/grass1.png");
         byte[] b_g2 = File.ReadAllBytes("Assets/Tiles/grass2.png");
         byte[] b_g3 = File.ReadAllBytes("Assets/Tiles/grass3.png");
@@ -846,19 +861,101 @@ public class Main : MonoBehaviour
         tiles[5,2].sprite = s_d3;
         tiles[5,3].sprite = s_d4;
         tiles[5,4].sprite = s_d5;
+
+        //debugTiles
+
+        debugTiles = new Tile[1];
+
+        byte[] b_dT1 = File.ReadAllBytes("Assets/Tiles/debugTile10x10.png");
+        Texture2D t_dT1 = new Texture2D(10,10);
+        t_dT1.LoadImage(b_dT1);
+        t_dT1.filterMode = FilterMode.Point;
+        t_dT1.wrapMode = TextureWrapMode.Clamp;
+        Sprite s_dT1 = Sprite.Create(t_dT1, r, v, 10);
+        debugTiles[0] = (Tile)ScriptableObject.CreateInstance("Tile");
+        debugTiles[0].sprite = s_dT1;
     }
 
     Tile[] getTilesForChunk(Chunk c) {
         Tile[] tA = new Tile[c.area.size.x*c.area.size.y];
-        int b = c.tempLevel + Chunk.maxTempLevel + 1;
-        if (c.tempLevel == Chunk.magicBiomeTemp) b = 0;
+        int b = c.tempIndex;
+
+        /* old
         for (int i = 0; i < tA.Length; i++) {
             tA[i] = tiles[b,Random.Range(0,tiles.GetLength(1))];
         }
+        */
+
+        // new
+
+        // tA starts at bottom left corner of chunk and continues right
+
+        int h1 = chunkSize-borderSize;
+        // center
+        for (int i = borderSize; i < h1; i++) {
+            for (int j = borderSize; j < h1; j++) {
+                tA[(i*chunkSize)+j] = tiles[b,Random.Range(0,tiles.GetLength(1))];
+            }
+        }
+        // sides
+        int curTI = c.tempIndex;
+        int topNeighbourTempIndex;
+        if (c.neighbours[1] != null && c.neighbours[1].hasTemp) {
+            topNeighbourTempIndex = c.neighbours[1].tempIndex;
+        } else {
+            topNeighbourTempIndex = curTI;
+            c.partiallyLoaded = true;
+            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
+            c.unloadedSides[0] = true;
+        }
+        int rightNeighbourTempIndex;
+        if (c.neighbours[3] != null && c.neighbours[3].hasTemp) {
+            rightNeighbourTempIndex = c.neighbours[3].tempIndex;
+        } else {
+            rightNeighbourTempIndex = curTI;
+            c.partiallyLoaded = true;
+            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
+            c.unloadedSides[1] = true;
+        }
+        int bottomNeighbourTempIndex;
+        if (c.neighbours[5] != null && c.neighbours[5].hasTemp) {
+            bottomNeighbourTempIndex = c.neighbours[5].tempIndex;
+        } else {
+            bottomNeighbourTempIndex = curTI;
+            c.partiallyLoaded = true;
+            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
+            c.unloadedSides[2] = true;
+        }
+        int leftNeighbourTempIndex;
+        if (c.neighbours[7] != null && c.neighbours[7].hasTemp) {
+            leftNeighbourTempIndex = c.neighbours[7].tempIndex;
+        } else {
+            leftNeighbourTempIndex = curTI;
+            c.partiallyLoaded = true;
+            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
+            c.unloadedSides[3] = true;
+        }
+        for (int d = 0; d < borderSize; d++) {
+            int h2 = chunkSize-(d+1);
+            for (int j = d; j <= h2; j++) {
+                tA[(d*chunkSize)+j] = weightedRandTile(curTI,bottomNeighbourTempIndex,d);
+                tA[(h2*chunkSize)+j] = weightedRandTile(curTI,topNeighbourTempIndex,d);
+            }
+            for (int i = d+1; i < h2; i++) {
+                tA[(i*chunkSize)+d] = weightedRandTile(curTI,leftNeighbourTempIndex,d);
+                tA[(i*chunkSize)+h2] = weightedRandTile(curTI,rightNeighbourTempIndex,d);
+            }
+        }
+
         return tA;
     }
 
-    void loadTilesAtChunk(Tile[] tA, Chunk c) {
+    Tile[] getTilesForSection() {
+        
+    }
+
+    void loadTilesAtChunk(Chunk c) {
+        Tile[] tA = getTilesForChunk(c);
         map.SetTilesBlock(c.area,tA);
 
         foreach (var p in c.area.allPositionsWithin) {
@@ -866,6 +963,84 @@ public class Main : MonoBehaviour
             Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
             map.SetTransformMatrix(p,matrix);
             map.RefreshTile(p);
+        }
+    }
+
+    void loadTilesAtBounds(Tile[] tA, BoundsInt b) {
+        map.SetTilesBlock(b,tA);
+
+        foreach (var p in b.allPositionsWithin) {
+            int r = Random.Range(0,4);
+            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
+            map.SetTransformMatrix(p,matrix);
+            map.RefreshTile(p);
+        }
+    }
+
+    Tile weightedRandTile(int t, int nT, int w) { // t and nT are tempIndex not tempLevel
+        if (t == nT) return tiles[t,Random.Range(0,tiles.GetLength(1))];
+        // w : weight from 0 to chunkSize/2 (distance to next chunk)
+        if (Random.value < preCalcedFuncVals[w]) {
+            return tiles[nT,Random.Range(0,tiles.GetLength(1))];
+        } else {
+            return tiles[t,Random.Range(0,tiles.GetLength(1))];
+        }
+    }
+
+    Tile doubleWeightedRandTile(int t, int nT1, int nT2, int w) { // t, nT1 and nT2 are tempIndex not tempLevel
+        if (t == nT1) return weightedRandTile(t,nT2,w);
+        if (t == nT2) return weightedRandTile(t,nT1,w);
+        // w : weight from 0 to chunkSize/2 (distance to next chunk)
+        int nT = nT1;
+        if (Random.value < 0.5f) nT = nT2;
+        if (Random.value < preCalcedFuncVals[w]) {
+            return tiles[nT,Random.Range(0,tiles.GetLength(1))];
+        } else {
+            return tiles[t,Random.Range(0,tiles.GetLength(1))];
+        }
+    }
+
+    void initPreCalcedFuncVals() {
+        for (int i = 0; i < chunkSize/2; i++) {
+            preCalcedFuncVals[i] = 0.5f * (Mathf.Exp(-(float)i));
+        }
+    }
+
+    void updateUnloadedSides(Chunk c) {
+        for (int nI = 1; nI < 8; nI += 2) {
+            Chunk n = c.neighbours[nI];
+            if (n != null && n.partiallyLoaded) {
+                if (n.unloadedSides[0]) {
+                    //reload top
+                    Tile[] tA = new Tile[chunkSize*borderSize];
+                    for (int d = 0; d < borderSize; d++) {
+                        int h2 = chunkSize-(d+1);
+                        for (int j = d; j <= h2; j++) {
+                            tA[(h2*chunkSize)+j] = weightedRandTile(n.tempIndex,c.tempIndex,d);
+                        }
+                    }
+                    BoundsInt area = new BoundsInt();
+
+                    loadTilesAtBounds(tA,area);
+                    n.unloadedSides[0] = false;
+                }
+                if (n.unloadedSides[1]) {
+                    //reload right
+                    
+                    n.unloadedSides[1] = false;
+                }
+                if (n.unloadedSides[2]) {
+                    //reload bottom
+                    
+                    n.unloadedSides[2] = false;
+                } 
+                if (n.unloadedSides[3]) {
+                    //reload left
+                    
+                    n.unloadedSides[3] = false;
+                }
+                n.partiallyLoaded = false;
+            }
         }
     }
 
