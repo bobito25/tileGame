@@ -495,7 +495,7 @@ public class Main : MonoBehaviour
     void setTreeTempLevel(Chunk c) {
         updateNeighbours(c);
         if (c.hasTemp) {
-            updateUnloadedSides(c);
+            updatePartiallyLoadedSides(c);
             return;
         }
         List<int> temps = new List<int>();
@@ -548,7 +548,7 @@ public class Main : MonoBehaviour
         if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
         c.tempIndex = tI;
         c.hasTemp = true;
-        updateUnloadedSides(c);
+        updatePartiallyLoadedSides(c);
     }
 
     void updateNeighbours(Chunk c) {
@@ -950,15 +950,66 @@ public class Main : MonoBehaviour
         return tA;
     }
 
-    Tile[] getTilesForSection() {
-        
-    }
-
     void loadTilesAtChunk(Chunk c) {
+        foreach (int i = 0; i < 9; i++) loadTilesAtSection(c,i);
+        /*
         Tile[] tA = getTilesForChunk(c);
         map.SetTilesBlock(c.area,tA);
 
         foreach (var p in c.area.allPositionsWithin) {
+            int r = Random.Range(0,4);
+            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
+            map.SetTransformMatrix(p,matrix);
+            map.RefreshTile(p);
+        }
+        */
+    }
+
+    
+
+    void loadTilesAtSection(Chunk c, int s) {
+        BoundsInt area = c.sections[s];
+        Tile[] tA;
+
+        switch(s) {
+            case 0:
+                int curTI = c.tempIndex;
+                int topTI = c.checkNeighbourTempIndex(0);
+                int leftTI = c.checkNeighbourTempIndex(3);
+                tA = new Tile[area.size];
+                for (int i = 0; i < area.size; i++) {
+                    tA[i] = doubleWeightedRandTile(curTI,topTI,leftTI,);
+                }
+                break;
+            case 1:
+
+                break;
+            case 2:
+
+                break;
+            case 3:
+
+                break;
+            case 4:
+
+                break;
+            case 5:
+
+                break;
+            case 6:
+
+                break;
+            case 7:
+
+                break;
+            case 8:
+
+                break;
+        }
+
+        map.SetTilesBlock(area,tA);
+
+        foreach (var p in area.allPositionsWithin) {
             int r = Random.Range(0,4);
             Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
             map.SetTransformMatrix(p,matrix);
@@ -1006,7 +1057,7 @@ public class Main : MonoBehaviour
         }
     }
 
-    void updateUnloadedSides(Chunk c) {
+    void updatePartiallyLoadedSides(Chunk c) {
         for (int nI = 1; nI < 8; nI += 2) {
             Chunk n = c.neighbours[nI];
             if (n != null && n.partiallyLoaded) {

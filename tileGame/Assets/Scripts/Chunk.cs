@@ -95,4 +95,16 @@ public class Chunk : Quadtree
     public new void setObstaclesLoaded(bool l) {
         obstaclesLoaded = l;
     }
+
+    public int checkNeighbourTempIndex(int s) { // s from 0 to 3 (top,right,bottom,left)
+        int n = 1 + (2*s);
+        if (neighbours[n] != null && neighbours[n].hasTemp) {
+            return neighbours[1].tempIndex;
+        } else {
+            partiallyLoaded = true;
+            if (unloadedSides == null) unloadedSides = new bool[4];
+            unloadedSides[s] = true;
+            return tempIndex;
+        }
+    }
 }
