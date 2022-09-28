@@ -13,15 +13,18 @@ TODO:
 
 -- make trees spawn in groups (sometimes?)
 
--- add biomes etc.
-
 -- implement neighours for chunks
  -> done?: loaded chunks see neighbouring loaded chunks as neighbours
 
 -- make player animation
  -> side walk animation done?
 
+-- remake character
+
 -- make chunk borders less defined
+ -> done?: need to fix corners (add more sections so biome on one side cant effect tiles on the other side of the corner)
+
+-- add semi chunks that can be multiple biomes -> fix magic biome problem
 
 -- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps (for performance)
 
@@ -40,8 +43,8 @@ public class Main : MonoBehaviour
     public static int chunkSize = 30; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
-    public static int borderSize = 3; // interpolation border (where biomes mix)
-    static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 >= x <= chunkSize/2
+    public static int borderSize = 10; // interpolation border (where biomes mix)
+    static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 >= x <= chunkSize/2 (clamped for x >= 8)
 
     public GameObject player;
     public Animator playerAnim;
@@ -226,6 +229,7 @@ public class Main : MonoBehaviour
         bi.SetMinMax(new Vector3Int(-chunkSize/2,-chunkSize/2,0), new Vector3Int(chunkSize/2,chunkSize/2,1));
         topTree = new Chunk(null,bi);
         ((Chunk)topTree).tempLevel = 0;
+        ((Chunk)topTree).tempIndex = Chunk.maxTempLevel+1;
         ((Chunk)topTree).hasTemp = true;
     }
 
@@ -308,7 +312,6 @@ public class Main : MonoBehaviour
 
     void loadChunkAtTree(Chunk q) {
         if (!q.getLoaded()) {
-            //addRandomGrassAtChunk(q.area);
             loadTilesAtChunk(q);
             q.setLoaded(true);
             placeObstacles(q);
@@ -495,7 +498,7 @@ public class Main : MonoBehaviour
     void setTreeTempLevel(Chunk c) {
         updateNeighbours(c);
         if (c.hasTemp) {
-            updatePartiallyLoadedSides(c);
+            updatePartiallyLoadedNeighbourSides(c);
             return;
         }
         List<int> temps = new List<int>();
@@ -548,7 +551,7 @@ public class Main : MonoBehaviour
         if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
         c.tempIndex = tI;
         c.hasTemp = true;
-        updatePartiallyLoadedSides(c);
+        updatePartiallyLoadedNeighbourSides(c);
     }
 
     void updateNeighbours(Chunk c) {
@@ -876,140 +879,374 @@ public class Main : MonoBehaviour
         debugTiles[0].sprite = s_dT1;
     }
 
-    Tile[] getTilesForChunk(Chunk c) {
-        Tile[] tA = new Tile[c.area.size.x*c.area.size.y];
-        int b = c.tempIndex;
-
-        /* old
-        for (int i = 0; i < tA.Length; i++) {
-            tA[i] = tiles[b,Random.Range(0,tiles.GetLength(1))];
-        }
-        */
-
-        // new
-
-        // tA starts at bottom left corner of chunk and continues right
-
-        int h1 = chunkSize-borderSize;
-        // center
-        for (int i = borderSize; i < h1; i++) {
-            for (int j = borderSize; j < h1; j++) {
-                tA[(i*chunkSize)+j] = tiles[b,Random.Range(0,tiles.GetLength(1))];
-            }
-        }
-        // sides
-        int curTI = c.tempIndex;
-        int topNeighbourTempIndex;
-        if (c.neighbours[1] != null && c.neighbours[1].hasTemp) {
-            topNeighbourTempIndex = c.neighbours[1].tempIndex;
-        } else {
-            topNeighbourTempIndex = curTI;
-            c.partiallyLoaded = true;
-            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
-            c.unloadedSides[0] = true;
-        }
-        int rightNeighbourTempIndex;
-        if (c.neighbours[3] != null && c.neighbours[3].hasTemp) {
-            rightNeighbourTempIndex = c.neighbours[3].tempIndex;
-        } else {
-            rightNeighbourTempIndex = curTI;
-            c.partiallyLoaded = true;
-            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
-            c.unloadedSides[1] = true;
-        }
-        int bottomNeighbourTempIndex;
-        if (c.neighbours[5] != null && c.neighbours[5].hasTemp) {
-            bottomNeighbourTempIndex = c.neighbours[5].tempIndex;
-        } else {
-            bottomNeighbourTempIndex = curTI;
-            c.partiallyLoaded = true;
-            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
-            c.unloadedSides[2] = true;
-        }
-        int leftNeighbourTempIndex;
-        if (c.neighbours[7] != null && c.neighbours[7].hasTemp) {
-            leftNeighbourTempIndex = c.neighbours[7].tempIndex;
-        } else {
-            leftNeighbourTempIndex = curTI;
-            c.partiallyLoaded = true;
-            if (c.unloadedSides == null) c.unloadedSides = new bool[4];
-            c.unloadedSides[3] = true;
-        }
-        for (int d = 0; d < borderSize; d++) {
-            int h2 = chunkSize-(d+1);
-            for (int j = d; j <= h2; j++) {
-                tA[(d*chunkSize)+j] = weightedRandTile(curTI,bottomNeighbourTempIndex,d);
-                tA[(h2*chunkSize)+j] = weightedRandTile(curTI,topNeighbourTempIndex,d);
-            }
-            for (int i = d+1; i < h2; i++) {
-                tA[(i*chunkSize)+d] = weightedRandTile(curTI,leftNeighbourTempIndex,d);
-                tA[(i*chunkSize)+h2] = weightedRandTile(curTI,rightNeighbourTempIndex,d);
-            }
-        }
-
-        return tA;
-    }
-
-    void loadTilesAtChunk(Chunk c) {
-        foreach (int i = 0; i < 9; i++) loadTilesAtSection(c,i);
-        /*
-        Tile[] tA = getTilesForChunk(c);
-        map.SetTilesBlock(c.area,tA);
-
-        foreach (var p in c.area.allPositionsWithin) {
-            int r = Random.Range(0,4);
-            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
-            map.SetTransformMatrix(p,matrix);
-            map.RefreshTile(p);
-        }
-        */
-    }
-
-    
-
     void loadTilesAtSection(Chunk c, int s) {
         BoundsInt area = c.sections[s];
-        Tile[] tA;
+        Tile[] tA = new Tile[area.size.x*area.size.y];
 
-        switch(s) {
-            case 0:
-                int curTI = c.tempIndex;
-                int topTI = c.checkNeighbourTempIndex(0);
-                int leftTI = c.checkNeighbourTempIndex(3);
-                tA = new Tile[area.size];
-                for (int i = 0; i < area.size; i++) {
-                    tA[i] = doubleWeightedRandTile(curTI,topTI,leftTI,);
+        int curTI = c.tempIndex;
+        if (s == 0) {
+            int topTI = c.checkNeighbourTempIndex(0);
+            int leftTI = c.checkNeighbourTempIndex(3);
+            int totI = 0;
+            for (int i = 0; i < borderSize; i++) {
+                int counter = borderSize-i;
+                int w = 0;
+                for (int j = 0; j < borderSize; j++) {
+                    tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
+                    totI++;
+                    if (counter > 1) {
+                        counter--;
+                        w++;
+                    } 
                 }
-                break;
-            case 1:
-
-                break;
-            case 2:
-
-                break;
-            case 3:
-
-                break;
-            case 4:
-
-                break;
-            case 5:
-
-                break;
-            case 6:
-
-                break;
-            case 7:
-
-                break;
-            case 8:
-
-                break;
+            }
+        } else if (s == 1) {
+            int topTI = c.checkNeighbourTempIndex(0);
+            for (int i = 0; i < borderSize; i++) {
+                int ii = i * area.size.x;
+                int w = borderSize-(i+1);
+                for (int j = 0; j < area.size.x; j++) {
+                    tA[ii+j] = weightedRandTile(curTI,topTI,w);
+                }
+            }
+        } else if (s == 2) {
+            int topTI = c.checkNeighbourTempIndex(0);
+            int rightTI = c.checkNeighbourTempIndex(1);
+            int totI = 0;
+            for (int i = 0; i < borderSize; i++) {
+                int counter = -i;
+                int w = borderSize-(i+1);
+                for (int j = 0; j < borderSize; j++) {
+                    tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
+                    totI++;
+                    if (counter >= 0) w--;
+                    counter++;
+                }
+            }
+        } else if (s == 3) {
+            int rightTI = c.checkNeighbourTempIndex(1);
+            for (int j = borderSize-1; j >= 0; j--) {
+                for (int i = 0; i < area.size.y; i++) {
+                    tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+                }
+            }
+        } else if (s == 4) {
+            int botTI = c.checkNeighbourTempIndex(2);
+            int rightTI = c.checkNeighbourTempIndex(1);
+            int totI = (area.size.x*area.size.y)-1;
+            for (int i = 0; i < borderSize; i++) {
+                int counter = borderSize-i;
+                int w = 0;
+                for (int j = 0; j < borderSize; j++) {
+                    tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
+                    totI--;
+                    if (counter > 1) {
+                        counter--;
+                        w++;
+                    } 
+                }
+            }
+        } else if (s == 5) {
+            int botTI = c.checkNeighbourTempIndex(2);
+            for (int i = 0; i < borderSize; i++) {
+                int ii = i * area.size.x;
+                for (int j = 0; j < area.size.x; j++) {
+                    tA[ii+j] = weightedRandTile(curTI,botTI,i);
+                }
+            }
+        } else if (s == 6) {
+            int botTI = c.checkNeighbourTempIndex(2);
+            int leftTI = c.checkNeighbourTempIndex(3);
+            int totI = (area.size.x*area.size.y)-1;
+            for (int i = 0; i < borderSize; i++) {
+                int counter = -i;
+                int w = borderSize-(i+1);
+                for (int j = 0; j < borderSize; j++) {
+                    tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
+                    totI--;
+                    if (counter >= 0) w--;
+                    counter++;
+                }
+            }
+        } else if (s == 7) {
+            int leftTI = c.checkNeighbourTempIndex(1);
+            for (int j = borderSize-1; j >= 0; j--) {
+                int w = borderSize-(j+1);
+                for (int i = 0; i < area.size.y; i++) {
+                    tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+                }
+            }
+        } else if (s == 8) {
+            for (int i = 0; i < tA.Length; i++) tA[i] = tiles[curTI,Random.Range(0,tiles.GetLength(1))];
+        } else {
+            Debug.Log("e: section int not valid (loadTilesAtSection in Main)");
         }
 
         map.SetTilesBlock(area,tA);
 
         foreach (var p in area.allPositionsWithin) {
+            int r = Random.Range(0,4);
+            Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
+            map.SetTransformMatrix(p,matrix);
+            map.RefreshTile(p);
+        }
+    }
+
+    void loadTilesAtSide(Chunk c, int side) {
+        int curTI = c.tempIndex;
+        int topTI = c.checkNeighbourTempIndex(0);
+        int rightTI = c.checkNeighbourTempIndex(1);
+        int botTI = c.checkNeighbourTempIndex(2);
+        int leftTI = c.checkNeighbourTempIndex(3);
+
+        int[] sections;
+        if (side == 0) {
+            sections = new int[] {0,1,2};
+        } else if (side == 1) {
+            sections = new int[] {2,3,4};
+        } else if (side == 2) {
+            sections = new int[] {4,5,6};
+        } else if (side == 3) {
+            sections = new int[] {6,7,0};
+        } else {
+            sections = null;
+            Debug.Log("e: side int not valid (loadTilesAtSide in Main)");
+        }
+
+        foreach (int s in sections)  {
+            BoundsInt area = c.sections[s];
+            Tile[] tA = new Tile[area.size.x*area.size.y];
+
+            if (s == 0) {
+                int totI = 0;
+                for (int i = 0; i < borderSize; i++) {
+                    int counter = borderSize-i;
+                    int w = 0;
+                    for (int j = 0; j < borderSize; j++) {
+                        tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
+                        totI++;
+                        if (counter > 1) {
+                            counter--;
+                            w++;
+                        } 
+                    }
+                }
+            } else if (s == 1) {
+                for (int i = 0; i < borderSize; i++) {
+                    int ii = i * area.size.x;
+                    int w = borderSize-(i+1);
+                    for (int j = 0; j < area.size.x; j++) {
+                        tA[ii+j] = weightedRandTile(curTI,topTI,w);
+                    }
+                }
+            } else if (s == 2) {
+                int totI = 0;
+                for (int i = 0; i < borderSize; i++) {
+                    int counter = -i;
+                    int w = borderSize-(i+1);
+                    for (int j = 0; j < borderSize; j++) {
+                        tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
+                        totI++;
+                        if (counter >= 0) w--;
+                        counter++;
+                    }
+                }
+            } else if (s == 3) {
+                for (int j = borderSize-1; j >= 0; j--) {
+                    for (int i = 0; i < area.size.y; i++) {
+                        tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+                    }
+                }
+            } else if (s == 4) {
+                int totI = (area.size.x*area.size.y)-1;
+                for (int i = 0; i < borderSize; i++) {
+                    int counter = borderSize-i;
+                    int w = 0;
+                    for (int j = 0; j < borderSize; j++) {
+                        tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
+                        totI--;
+                        if (counter > 1) {
+                            counter--;
+                            w++;
+                        } 
+                    }
+                }
+            } else if (s == 5) {
+                for (int i = 0; i < borderSize; i++) {
+                    int ii = i * area.size.x;
+                    for (int j = 0; j < area.size.x; j++) {
+                        tA[ii+j] = weightedRandTile(curTI,botTI,i);
+                    }
+                }
+            } else if (s == 6) {
+                int totI = (area.size.x*area.size.y)-1;
+                for (int i = 0; i < borderSize; i++) {
+                    int counter = -i;
+                    int w = borderSize-(i+1);
+                    for (int j = 0; j < borderSize; j++) {
+                        tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
+                        totI--;
+                        if (counter >= 0) w--;
+                        counter++;
+                    }
+                }
+            } else if (s == 7) {
+                for (int j = borderSize-1; j >= 0; j--) {
+                    int w = borderSize-(j+1);
+                    for (int i = 0; i < area.size.y; i++) {
+                        tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+                    }
+                }
+            } else if (s == 8) {
+                for (int i = 0; i < tA.Length; i++) tA[i] = tiles[curTI,Random.Range(0,tiles.GetLength(1))];
+            }
+
+            map.SetTilesBlock(area,tA);
+
+            foreach (var p in area.allPositionsWithin) {
+                int r = Random.Range(0,4);
+                Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
+                map.SetTransformMatrix(p,matrix);
+                map.RefreshTile(p);
+            }
+        }
+    }
+
+    void loadTilesAtChunk(Chunk c) {
+        int curTI = c.tempIndex;
+        int topTI = c.checkNeighbourTempIndex(0);
+        int rightTI = c.checkNeighbourTempIndex(1);
+        int botTI = c.checkNeighbourTempIndex(2);
+        int leftTI = c.checkNeighbourTempIndex(3);
+        
+        BoundsInt area = c.sections[0];
+        Tile[] tA = new Tile[area.size.x*area.size.y];
+
+        int totI = 0;
+        for (int i = 0; i < borderSize; i++) {
+            int counter = borderSize-i;
+            int w = 0;
+            for (int j = 0; j < borderSize; j++) {
+                tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
+                totI++;
+                if (counter > 1) {
+                    counter--;
+                    w++;
+                } 
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+
+        area = c.sections[1];
+        tA = new Tile[area.size.x*area.size.y];
+        
+        for (int i = 0; i < borderSize; i++) {
+            int ii = i * area.size.x;
+            int w = borderSize-(i+1);
+            for (int j = 0; j < area.size.x; j++) {
+                tA[ii+j] = weightedRandTile(curTI,topTI,w);
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[2];
+        tA = new Tile[area.size.x*area.size.y];
+
+        totI = 0;
+        for (int i = 0; i < borderSize; i++) {
+            int counter = -i;
+            int w = borderSize-(i+1);
+            for (int j = 0; j < borderSize; j++) {
+                tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
+                totI++;
+                if (counter >= 0) w--;
+                counter++;
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[3];
+        tA = new Tile[area.size.x*area.size.y];
+
+        for (int j = borderSize-1; j >= 0; j--) {
+            for (int i = 0; i < area.size.y; i++) {
+                tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[4];
+        tA = new Tile[area.size.x*area.size.y];
+
+        totI = (area.size.x*area.size.y)-1;
+        for (int i = 0; i < borderSize; i++) {
+            int counter = borderSize-i;
+            int w = 0;
+            for (int j = 0; j < borderSize; j++) {
+                tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
+                totI--;
+                if (counter > 1) {
+                    counter--;
+                    w++;
+                } 
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[5];
+        tA = new Tile[area.size.x*area.size.y];
+
+        for (int i = 0; i < borderSize; i++) {
+            int ii = i * area.size.x;
+            for (int j = 0; j < area.size.x; j++) {
+                tA[ii+j] = weightedRandTile(curTI,botTI,i);
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[6];
+        tA = new Tile[area.size.x*area.size.y];
+
+        totI = (area.size.x*area.size.y)-1;
+        for (int i = 0; i < borderSize; i++) {
+            int counter = -i;
+            int w = borderSize-(i+1);
+            for (int j = 0; j < borderSize; j++) {
+                tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
+                totI--;
+                if (counter >= 0) w--;
+                counter++;
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[7];
+        tA = new Tile[area.size.x*area.size.y];
+
+        for (int j = borderSize-1; j >= 0; j--) {
+            int w = borderSize-(j+1);
+            for (int i = 0; i < area.size.y; i++) {
+                tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+            }
+        }
+
+        map.SetTilesBlock(area,tA);
+        
+        area = c.sections[8];
+        tA = new Tile[area.size.x*area.size.y];
+
+        for (int i = 0; i < tA.Length; i++) tA[i] = tiles[curTI,Random.Range(0,tiles.GetLength(1))];
+
+        map.SetTilesBlock(area,tA);
+
+        foreach (var p in c.area.allPositionsWithin) {
             int r = Random.Range(0,4);
             Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
             map.SetTransformMatrix(p,matrix);
@@ -1052,48 +1289,46 @@ public class Main : MonoBehaviour
     }
 
     void initPreCalcedFuncVals() {
-        for (int i = 0; i < chunkSize/2; i++) {
+        preCalcedFuncVals = new float[chunkSize/2];
+        for (int i = 0; i < 8; i++) {
             preCalcedFuncVals[i] = 0.5f * (Mathf.Exp(-(float)i));
         }
-    }
-
-    void updatePartiallyLoadedSides(Chunk c) {
-        for (int nI = 1; nI < 8; nI += 2) {
-            Chunk n = c.neighbours[nI];
-            if (n != null && n.partiallyLoaded) {
-                if (n.unloadedSides[0]) {
-                    //reload top
-                    Tile[] tA = new Tile[chunkSize*borderSize];
-                    for (int d = 0; d < borderSize; d++) {
-                        int h2 = chunkSize-(d+1);
-                        for (int j = d; j <= h2; j++) {
-                            tA[(h2*chunkSize)+j] = weightedRandTile(n.tempIndex,c.tempIndex,d);
-                        }
-                    }
-                    BoundsInt area = new BoundsInt();
-
-                    loadTilesAtBounds(tA,area);
-                    n.unloadedSides[0] = false;
-                }
-                if (n.unloadedSides[1]) {
-                    //reload right
-                    
-                    n.unloadedSides[1] = false;
-                }
-                if (n.unloadedSides[2]) {
-                    //reload bottom
-                    
-                    n.unloadedSides[2] = false;
-                } 
-                if (n.unloadedSides[3]) {
-                    //reload left
-                    
-                    n.unloadedSides[3] = false;
-                }
-                n.partiallyLoaded = false;
-            }
+        for (int i = 8; i < chunkSize/2; i++) {
+            preCalcedFuncVals[i] = 0;
         }
     }
+
+    void updatePartiallyLoadedNeighbourSides(Chunk c) {
+        Chunk n = c.neighbours[1];
+        if (n != null && n.partiallyLoaded && n.unloadedSides[0]) {
+            //reload top
+            loadTilesAtSide(n,0);
+            n.unloadedSides[0] = false;
+            n.checkDoneLoading();
+        }
+        n = c.neighbours[3];
+        if (n != null && n.partiallyLoaded && n.unloadedSides[1]) {
+            //reload right
+            loadTilesAtSide(n,1);
+            n.unloadedSides[1] = false;
+            n.checkDoneLoading();
+        }
+        n = c.neighbours[5];
+        if (n != null && n.partiallyLoaded && n.unloadedSides[2]) {
+            //reload bottom
+            loadTilesAtSide(n,2);
+            n.unloadedSides[2] = false;
+            n.checkDoneLoading();
+        }
+        n = c.neighbours[7];
+        if (n != null && n.partiallyLoaded && n.unloadedSides[3]) {
+            //reload left
+            loadTilesAtSide(n,3);
+            n.unloadedSides[3] = false;
+            n.checkDoneLoading();
+        }
+    }
+
 
     void addRandomGrassAt(int x, int y) {
         Vector3Int pos = new Vector3Int(x,y,0);

@@ -39,17 +39,33 @@ public class Chunk : Quadtree
 
     void setSections(BoundsInt a) {
         sections = new BoundsInt[9];
+        for (int i = 0; i < 9; i++) sections[i] = new BoundsInt();
+        int b = Main.borderSize;
+        sections[0].SetMinMax(new Vector3Int(a.x,a.yMax-b,0), new Vector3Int(a.x+b,a.yMax,1));
+        sections[1].SetMinMax(new Vector3Int(a.x+b,a.yMax-b,0), new Vector3Int(a.xMax-b,a.yMax,1));
+        sections[2].SetMinMax(new Vector3Int(a.xMax-b,a.yMax-b,0), a.max);
+        sections[3].SetMinMax(new Vector3Int(a.xMax-b,a.y+b,0), new Vector3Int(a.xMax,a.yMax-b,1));
+        sections[4].SetMinMax(new Vector3Int(a.xMax-b,a.y,0), new Vector3Int(a.xMax,a.y+b,1));
+        sections[5].SetMinMax(new Vector3Int(a.x+b,a.y,0), new Vector3Int(a.xMax-b,a.y+b,1));
+        sections[6].SetMinMax(a.min, new Vector3Int(a.x+b,a.y+b,1));
+        sections[7].SetMinMax(new Vector3Int(a.x,a.y+b,0), new Vector3Int(a.x+b,a.yMax-b,1));
+        sections[8].SetMinMax(new Vector3Int(a.x+b,a.y+b,0), new Vector3Int(a.xMax-b,a.yMax-b,1));
+
+        /* alternative
+        sections = new BoundsInt[9];
         int b = Main.borderSize;
         int c = Main.chunkSize;
-        sections[0] = new BoundsInt(new Vector3Int(a.x,a.yMax-b,0), new Vector3Int(a.x+b,a.yMax,1));
-        sections[1] = new BoundsInt(new Vector3Int(a.x+b,a.yMax-b,0), new Vector3Int(a.xMax-b,a.yMax,1));
-        sections[2] = new BoundsInt(new Vector3Int(a.xMax-b,a.yMax-b,0), a.max);
-        sections[3] = new BoundsInt(new Vector3Int(a.xMax-b,a.y+b,0), new Vector3Int(a.xMax,a.yMax-b,1));
-        sections[4] = new BoundsInt(new Vector3Int(a.xMax-b,a.y,0), new Vector3Int(a.xMax,a.y+b,1));
-        sections[5] = new BoundsInt(new Vector3Int(a.x+b,a.y,0), new Vector3Int(a.xMax-b,a.y+b,1));
-        sections[6] = new BoundsInt(a.min, new Vector3Int(a.x+b,a.y+b,1));
-        sections[7] = new BoundsInt(new Vector3Int(a.x,a.y+b,0), new Vector3Int(a.x+b,a.yMax-b,1));
-        sections[8] = new BoundsInt(new Vector3Int(a.x+b,a.y+b,0), new Vector3Int(a.xMax-b,a.yMax-b,1));
+        int l = c - (b*2);
+        sections[0] = new BoundsInt(new Vector3Int(a.x,a.yMax-b,0), new Vector3Int(b,b,1));
+        sections[1] = new BoundsInt(new Vector3Int(a.x+b,a.yMax-b,0), new Vector3Int(l,b,1));
+        sections[2] = new BoundsInt(new Vector3Int(a.xMax-b,a.yMax-b,0), new Vector3Int(b,b,1));
+        sections[3] = new BoundsInt(new Vector3Int(a.xMax-b,a.y+b,0), new Vector3Int(b,l,1));
+        sections[4] = new BoundsInt(new Vector3Int(a.xMax-b,a.y,0), new Vector3Int(b,b,1));
+        sections[5] = new BoundsInt(new Vector3Int(a.x+b,a.y,0), new Vector3Int(l,b,1));
+        sections[6] = new BoundsInt(a.min, new Vector3Int(b,b,1));
+        sections[7] = new BoundsInt(new Vector3Int(a.x,a.y+b,0), new Vector3Int(b,l,1));
+        sections[8] = new BoundsInt(new Vector3Int(a.x+b,a.y+b,0), new Vector3Int(l,l,1));
+        */
     }
     
     public new void unloadObstacles() {
@@ -99,12 +115,18 @@ public class Chunk : Quadtree
     public int checkNeighbourTempIndex(int s) { // s from 0 to 3 (top,right,bottom,left)
         int n = 1 + (2*s);
         if (neighbours[n] != null && neighbours[n].hasTemp) {
-            return neighbours[1].tempIndex;
+            return neighbours[n].tempIndex;
         } else {
+            if (partiallyLoaded) return tempIndex;
             partiallyLoaded = true;
             if (unloadedSides == null) unloadedSides = new bool[4];
             unloadedSides[s] = true;
             return tempIndex;
         }
+    }
+
+    public void checkDoneLoading() {
+        foreach (bool b in unloadedSides) if (b) return;
+        partiallyLoaded = false;
     }
 }
