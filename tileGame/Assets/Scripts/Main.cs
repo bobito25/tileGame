@@ -24,11 +24,15 @@ TODO:
 -- make chunk borders less defined
  -> done?: need to fix corners (add more sections so biome on one side cant effect tiles on the other side of the corner)
 
--- add semi chunks that can be multiple biomes -> fix magic biome problem
+-- add semi chunks that can be multiple biomes
 
 -- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps (for performance)
 
 -- make all textures 20 x 20 like character
+
+-- fix neighbours being set more than needed
+
+-- load further temp of further away chunks to prevent partially loaded chunks and magic biome problem
 
 */
 
@@ -59,7 +63,7 @@ public class Main : MonoBehaviour
 
     public static GameObject[] debugChunkSquares;
 
-    public static bool debug_drawTrees = true;
+    public static bool debug_drawTrees = false;
     public static bool debug_drawTempColors = false;
     public static bool debug_drawTempOffsets = false;
 
@@ -281,9 +285,9 @@ public class Main : MonoBehaviour
         foreach (Chunk c in cur.neighbours) {
             setTreeTempLevel(c);
         }
-        updatePartiallyLoadedNeighbourSides(cur);
+        updatePartiallyLoadedSides(cur);
         foreach (Chunk c in cur.neighbours) {
-            updatePartiallyLoadedNeighbourSides(c);
+            updatePartiallyLoadedSides(c);
         }
         loadChunkAtTree(cur);
         foreach (Chunk c in cur.neighbours) {
@@ -1010,7 +1014,7 @@ public class Main : MonoBehaviour
 
         map.SetTilesBlock(area,tA);
 
-        foreach (var p in area.allPositionsWithin) {
+        foreach (var p in c.area.allPositionsWithin) {
             int r = Random.Range(0,4);
             Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
             map.SetTransformMatrix(p,matrix);
@@ -1103,7 +1107,7 @@ public class Main : MonoBehaviour
 
             map.SetTilesBlock(area,tA);
 
-            foreach (var p in area.allPositionsWithin) {
+            foreach (var p in c.area.allPositionsWithin) {
                 int r = Random.Range(0,4);
                 Matrix4x4 matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(0f, 0f, 90f*r), Vector3.one);
                 map.SetTransformMatrix(p,matrix);
@@ -1284,8 +1288,8 @@ public class Main : MonoBehaviour
         }
     }
 
-    void updatePartiallyLoadedNeighbourSides(Chunk c) {
-        Chunk n = c.neighbours[1];
+    void updatePartiallyLoadedSides(Chunk c) {
+        /*Chunk n = c.neighbours[1];
         if (n != null && n.partiallyLoaded && n.unloadedSides[0]) {
             //reload top
             loadTilesAtSide(n,0);
@@ -1312,6 +1316,15 @@ public class Main : MonoBehaviour
             loadTilesAtSide(n,3);
             n.unloadedSides[3] = false;
             n.checkDoneLoading();
+        }*/
+        if (!c.partiallyLoaded) return;
+        for (int i = 0; i < 4; i++) {
+            Chunk n = c.neighbours[(2*i)+1];
+            if (c.unloadedSides[i] && n != null && n.hasTemp) {
+                loadTilesAtSide(c,i);
+                c.unloadedSides[i] = false;
+                c.checkDoneLoading();
+            }
         }
     }
 
