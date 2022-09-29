@@ -44,7 +44,7 @@ public class Main : MonoBehaviour
     public static int quadtreeMaxLevel = 1;
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
     public static int borderSize = 10; // interpolation border (where biomes mix)
-    static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 >= x <= chunkSize/2 (clamped for x >= 8)
+    static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 <= x <= chunkSize/2 (clamped for x >= 8)
 
     public GameObject player;
     public Animator playerAnim;
@@ -604,77 +604,77 @@ public class Main : MonoBehaviour
     void initTiles() {
         tiles = new Tile[Chunk.numTempLevels+1,5];
 
-        byte[] b_g1 = File.ReadAllBytes("Assets/Tiles/grass1.png");
-        byte[] b_g2 = File.ReadAllBytes("Assets/Tiles/grass2.png");
-        byte[] b_g3 = File.ReadAllBytes("Assets/Tiles/grass3.png");
-        byte[] b_g4 = File.ReadAllBytes("Assets/Tiles/grass4.png");
-        byte[] b_g5 = File.ReadAllBytes("Assets/Tiles/grass5.png");
+        byte[] b_g1 = File.ReadAllBytes("Assets/Tiles/grass1_x20.png");
+        byte[] b_g2 = File.ReadAllBytes("Assets/Tiles/grass2_x20.png");
+        byte[] b_g3 = File.ReadAllBytes("Assets/Tiles/grass3_x20.png");
+        byte[] b_g4 = File.ReadAllBytes("Assets/Tiles/grass4_x20.png");
+        byte[] b_g5 = File.ReadAllBytes("Assets/Tiles/grass5_x20.png");
 
-        byte[] b_m1 = File.ReadAllBytes("Assets/Tiles/magicBiome1.png");
-        byte[] b_m2 = File.ReadAllBytes("Assets/Tiles/magicBiome2.png");
-        byte[] b_m3 = File.ReadAllBytes("Assets/Tiles/magicBiome3.png");
-        byte[] b_m4 = File.ReadAllBytes("Assets/Tiles/magicBiome4.png");
-        byte[] b_m5 = File.ReadAllBytes("Assets/Tiles/magicBiome5.png");
+        byte[] b_m1 = File.ReadAllBytes("Assets/Tiles/magicBiome1_x20.png");
+        byte[] b_m2 = File.ReadAllBytes("Assets/Tiles/magicBiome2_x20.png");
+        byte[] b_m3 = File.ReadAllBytes("Assets/Tiles/magicBiome3_x20.png");
+        byte[] b_m4 = File.ReadAllBytes("Assets/Tiles/magicBiome4_x20.png");
+        byte[] b_m5 = File.ReadAllBytes("Assets/Tiles/magicBiome5_x20.png");
 
-        byte[] b_i1 = File.ReadAllBytes("Assets/Tiles/iceBiome1.png");
-        byte[] b_i2 = File.ReadAllBytes("Assets/Tiles/iceBiome2.png");
-        byte[] b_i3 = File.ReadAllBytes("Assets/Tiles/iceBiome3.png");
-        byte[] b_i4 = File.ReadAllBytes("Assets/Tiles/iceBiome4.png");
-        byte[] b_i5 = File.ReadAllBytes("Assets/Tiles/iceBiome5.png");
+        byte[] b_i1 = File.ReadAllBytes("Assets/Tiles/iceBiome1_x20.png");
+        byte[] b_i2 = File.ReadAllBytes("Assets/Tiles/iceBiome2_x20.png");
+        byte[] b_i3 = File.ReadAllBytes("Assets/Tiles/iceBiome3_x20.png");
+        byte[] b_i4 = File.ReadAllBytes("Assets/Tiles/iceBiome4_x20.png");
+        byte[] b_i5 = File.ReadAllBytes("Assets/Tiles/iceBiome5_x20.png");
 
-        byte[] b_t1 = File.ReadAllBytes("Assets/Tiles/tundraBiome1.png");
-        byte[] b_t2 = File.ReadAllBytes("Assets/Tiles/tundraBiome2.png");
-        byte[] b_t3 = File.ReadAllBytes("Assets/Tiles/tundraBiome3.png");
-        byte[] b_t4 = File.ReadAllBytes("Assets/Tiles/tundraBiome4.png");
-        byte[] b_t5 = File.ReadAllBytes("Assets/Tiles/tundraBiome5.png");
+        byte[] b_t1 = File.ReadAllBytes("Assets/Tiles/tundraBiome1_x20.png");
+        byte[] b_t2 = File.ReadAllBytes("Assets/Tiles/tundraBiome2_x20.png");
+        byte[] b_t3 = File.ReadAllBytes("Assets/Tiles/tundraBiome3_x20.png");
+        byte[] b_t4 = File.ReadAllBytes("Assets/Tiles/tundraBiome4_x20.png");
+        byte[] b_t5 = File.ReadAllBytes("Assets/Tiles/tundraBiome5_x20.png");
 
-        byte[] b_s1 = File.ReadAllBytes("Assets/Tiles/savannaBiome1.png");
-        byte[] b_s2 = File.ReadAllBytes("Assets/Tiles/savannaBiome2.png");
-        byte[] b_s3 = File.ReadAllBytes("Assets/Tiles/savannaBiome3.png");
-        byte[] b_s4 = File.ReadAllBytes("Assets/Tiles/savannaBiome4.png");
-        byte[] b_s5 = File.ReadAllBytes("Assets/Tiles/savannaBiome5.png");
+        byte[] b_s1 = File.ReadAllBytes("Assets/Tiles/savannaBiome1_x20.png");
+        byte[] b_s2 = File.ReadAllBytes("Assets/Tiles/savannaBiome2_x20.png");
+        byte[] b_s3 = File.ReadAllBytes("Assets/Tiles/savannaBiome3_x20.png");
+        byte[] b_s4 = File.ReadAllBytes("Assets/Tiles/savannaBiome4_x20.png");
+        byte[] b_s5 = File.ReadAllBytes("Assets/Tiles/savannaBiome5_x20.png");
 
-        byte[] b_d1 = File.ReadAllBytes("Assets/Tiles/desertBiome1.png");
-        byte[] b_d2 = File.ReadAllBytes("Assets/Tiles/desertBiome2.png");
-        byte[] b_d3 = File.ReadAllBytes("Assets/Tiles/desertBiome3.png");
-        byte[] b_d4 = File.ReadAllBytes("Assets/Tiles/desertBiome4.png");
-        byte[] b_d5 = File.ReadAllBytes("Assets/Tiles/desertBiome5.png");
+        byte[] b_d1 = File.ReadAllBytes("Assets/Tiles/desertBiome1_x20.png");
+        byte[] b_d2 = File.ReadAllBytes("Assets/Tiles/desertBiome2_x20.png");
+        byte[] b_d3 = File.ReadAllBytes("Assets/Tiles/desertBiome3_x20.png");
+        byte[] b_d4 = File.ReadAllBytes("Assets/Tiles/desertBiome4_x20.png");
+        byte[] b_d5 = File.ReadAllBytes("Assets/Tiles/desertBiome5_x20.png");
 
-        Texture2D t_g1 = new Texture2D(10,10);
-        Texture2D t_g2 = new Texture2D(10,10);
-        Texture2D t_g3 = new Texture2D(10,10);
-        Texture2D t_g4 = new Texture2D(10,10);
-        Texture2D t_g5 = new Texture2D(10,10);
+        Texture2D t_g1 = new Texture2D(20,20);
+        Texture2D t_g2 = new Texture2D(20,20);
+        Texture2D t_g3 = new Texture2D(20,20);
+        Texture2D t_g4 = new Texture2D(20,20);
+        Texture2D t_g5 = new Texture2D(20,20);
 
-        Texture2D t_m1 = new Texture2D(10,10);
-        Texture2D t_m2 = new Texture2D(10,10);
-        Texture2D t_m3 = new Texture2D(10,10);
-        Texture2D t_m4 = new Texture2D(10,10);
-        Texture2D t_m5 = new Texture2D(10,10);
+        Texture2D t_m1 = new Texture2D(20,20);
+        Texture2D t_m2 = new Texture2D(20,20);
+        Texture2D t_m3 = new Texture2D(20,20);
+        Texture2D t_m4 = new Texture2D(20,20);
+        Texture2D t_m5 = new Texture2D(20,20);
 
-        Texture2D t_i1 = new Texture2D(10,10);
-        Texture2D t_i2 = new Texture2D(10,10);
-        Texture2D t_i3 = new Texture2D(10,10);
-        Texture2D t_i4 = new Texture2D(10,10);
-        Texture2D t_i5 = new Texture2D(10,10);
+        Texture2D t_i1 = new Texture2D(20,20);
+        Texture2D t_i2 = new Texture2D(20,20);
+        Texture2D t_i3 = new Texture2D(20,20);
+        Texture2D t_i4 = new Texture2D(20,20);
+        Texture2D t_i5 = new Texture2D(20,20);
         
-        Texture2D t_t1 = new Texture2D(10,10);
-        Texture2D t_t2 = new Texture2D(10,10);
-        Texture2D t_t3 = new Texture2D(10,10);
-        Texture2D t_t4 = new Texture2D(10,10);
-        Texture2D t_t5 = new Texture2D(10,10);
+        Texture2D t_t1 = new Texture2D(20,20);
+        Texture2D t_t2 = new Texture2D(20,20);
+        Texture2D t_t3 = new Texture2D(20,20);
+        Texture2D t_t4 = new Texture2D(20,20);
+        Texture2D t_t5 = new Texture2D(20,20);
 
-        Texture2D t_s1 = new Texture2D(10,10);
-        Texture2D t_s2 = new Texture2D(10,10);
-        Texture2D t_s3 = new Texture2D(10,10);
-        Texture2D t_s4 = new Texture2D(10,10);
-        Texture2D t_s5 = new Texture2D(10,10);
+        Texture2D t_s1 = new Texture2D(20,20);
+        Texture2D t_s2 = new Texture2D(20,20);
+        Texture2D t_s3 = new Texture2D(20,20);
+        Texture2D t_s4 = new Texture2D(20,20);
+        Texture2D t_s5 = new Texture2D(20,20);
 
-        Texture2D t_d1 = new Texture2D(10,10);
-        Texture2D t_d2 = new Texture2D(10,10);
-        Texture2D t_d3 = new Texture2D(10,10);
-        Texture2D t_d4 = new Texture2D(10,10);
-        Texture2D t_d5 = new Texture2D(10,10);
+        Texture2D t_d1 = new Texture2D(20,20);
+        Texture2D t_d2 = new Texture2D(20,20);
+        Texture2D t_d3 = new Texture2D(20,20);
+        Texture2D t_d4 = new Texture2D(20,20);
+        Texture2D t_d5 = new Texture2D(20,20);
         
         t_g1.LoadImage(b_g1);
         t_g2.LoadImage(b_g2);
@@ -785,43 +785,44 @@ public class Main : MonoBehaviour
         t_d5.wrapMode = TextureWrapMode.Clamp;
 
         Rect r = new Rect(0,0,10,10);
+        Rect r2 = new Rect(0,0,20,20);
         Vector2 v = new Vector2(0.5f,0.5f);
 
-        Sprite s_g1 = Sprite.Create(t_g1, r, v, 10);
-        Sprite s_g2 = Sprite.Create(t_g2, r, v, 10);
-        Sprite s_g3 = Sprite.Create(t_g3, r, v, 10);
-        Sprite s_g4 = Sprite.Create(t_g4, r, v, 10);
-        Sprite s_g5 = Sprite.Create(t_g5, r, v, 10);
+        Sprite s_g1 = Sprite.Create(t_g1, r2, v, 20);
+        Sprite s_g2 = Sprite.Create(t_g2, r2, v, 20);
+        Sprite s_g3 = Sprite.Create(t_g3, r2, v, 20);
+        Sprite s_g4 = Sprite.Create(t_g4, r2, v, 20);
+        Sprite s_g5 = Sprite.Create(t_g5, r2, v, 20);
 
-        Sprite s_m1 = Sprite.Create(t_m1, r, v, 10);
-        Sprite s_m2 = Sprite.Create(t_m2, r, v, 10);
-        Sprite s_m3 = Sprite.Create(t_m3, r, v, 10);
-        Sprite s_m4 = Sprite.Create(t_m4, r, v, 10);
-        Sprite s_m5 = Sprite.Create(t_m5, r, v, 10);
+        Sprite s_m1 = Sprite.Create(t_m1, r2, v, 20);
+        Sprite s_m2 = Sprite.Create(t_m2, r2, v, 20);
+        Sprite s_m3 = Sprite.Create(t_m3, r2, v, 20);
+        Sprite s_m4 = Sprite.Create(t_m4, r2, v, 20);
+        Sprite s_m5 = Sprite.Create(t_m5, r2, v, 20);
 
-        Sprite s_i1 = Sprite.Create(t_i1, r, v, 10);
-        Sprite s_i2 = Sprite.Create(t_i2, r, v, 10);
-        Sprite s_i3 = Sprite.Create(t_i3, r, v, 10);
-        Sprite s_i4 = Sprite.Create(t_i4, r, v, 10);
-        Sprite s_i5 = Sprite.Create(t_i5, r, v, 10);
+        Sprite s_i1 = Sprite.Create(t_i1, r2, v, 20);
+        Sprite s_i2 = Sprite.Create(t_i2, r2, v, 20);
+        Sprite s_i3 = Sprite.Create(t_i3, r2, v, 20);
+        Sprite s_i4 = Sprite.Create(t_i4, r2, v, 20);
+        Sprite s_i5 = Sprite.Create(t_i5, r2, v, 20);
 
-        Sprite s_t1 = Sprite.Create(t_t1, r, v, 10);
-        Sprite s_t2 = Sprite.Create(t_t2, r, v, 10);
-        Sprite s_t3 = Sprite.Create(t_t3, r, v, 10);
-        Sprite s_t4 = Sprite.Create(t_t4, r, v, 10);
-        Sprite s_t5 = Sprite.Create(t_t5, r, v, 10);
+        Sprite s_t1 = Sprite.Create(t_t1, r2, v, 20);
+        Sprite s_t2 = Sprite.Create(t_t2, r2, v, 20);
+        Sprite s_t3 = Sprite.Create(t_t3, r2, v, 20);
+        Sprite s_t4 = Sprite.Create(t_t4, r2, v, 20);
+        Sprite s_t5 = Sprite.Create(t_t5, r2, v, 20);
 
-        Sprite s_s1 = Sprite.Create(t_s1, r, v, 10);
-        Sprite s_s2 = Sprite.Create(t_s2, r, v, 10);
-        Sprite s_s3 = Sprite.Create(t_s3, r, v, 10);
-        Sprite s_s4 = Sprite.Create(t_s4, r, v, 10);
-        Sprite s_s5 = Sprite.Create(t_s5, r, v, 10);
+        Sprite s_s1 = Sprite.Create(t_s1, r2, v, 20);
+        Sprite s_s2 = Sprite.Create(t_s2, r2, v, 20);
+        Sprite s_s3 = Sprite.Create(t_s3, r2, v, 20);
+        Sprite s_s4 = Sprite.Create(t_s4, r2, v, 20);
+        Sprite s_s5 = Sprite.Create(t_s5, r2, v, 20);
 
-        Sprite s_d1 = Sprite.Create(t_d1, r, v, 10);
-        Sprite s_d2 = Sprite.Create(t_d2, r, v, 10);
-        Sprite s_d3 = Sprite.Create(t_d3, r, v, 10);
-        Sprite s_d4 = Sprite.Create(t_d4, r, v, 10);
-        Sprite s_d5 = Sprite.Create(t_d5, r, v, 10);
+        Sprite s_d1 = Sprite.Create(t_d1, r2, v, 20);
+        Sprite s_d2 = Sprite.Create(t_d2, r2, v, 20);
+        Sprite s_d3 = Sprite.Create(t_d3, r2, v, 20);
+        Sprite s_d4 = Sprite.Create(t_d4, r2, v, 20);
+        Sprite s_d5 = Sprite.Create(t_d5, r2, v, 20);
 
         for (int i = 0; i < tiles.GetLength(0); i++) {
             for (int j = 0; j < tiles.GetLength(1); j++) {
