@@ -117,10 +117,11 @@ public class Chunk : Quadtree
         if (neighbours[n] != null && neighbours[n].hasTemp) {
             return neighbours[n].tempIndex;
         } else {
-            if (partiallyLoaded) return tempIndex;
-            partiallyLoaded = true;
-            if (unloadedSides == null) unloadedSides = new bool[4];
-            unloadedSides[s] = true;
+            if (!partiallyLoaded || !unloadedSides[s]) {
+                partiallyLoaded = true;
+                if (unloadedSides == null) unloadedSides = new bool[4];
+                unloadedSides[s] = true;
+            }
             return tempIndex;
         }
     }

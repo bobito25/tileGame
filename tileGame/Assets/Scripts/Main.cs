@@ -59,7 +59,7 @@ public class Main : MonoBehaviour
 
     public static GameObject[] debugChunkSquares;
 
-    public static bool debug_drawTrees = false;
+    public static bool debug_drawTrees = true;
     public static bool debug_drawTempColors = false;
     public static bool debug_drawTempOffsets = false;
 
@@ -278,9 +278,15 @@ public class Main : MonoBehaviour
         n[7].addNeighbour(n[6],5);
         cur.neighbours = n;
         setTreeTempLevel(cur);
-        loadChunkAtTree(cur);
         foreach (Chunk c in cur.neighbours) {
             setTreeTempLevel(c);
+        }
+        updatePartiallyLoadedNeighbourSides(cur);
+        foreach (Chunk c in cur.neighbours) {
+            updatePartiallyLoadedNeighbourSides(c);
+        }
+        loadChunkAtTree(cur);
+        foreach (Chunk c in cur.neighbours) {
             loadChunkAtTree(c);
         }
     }
@@ -497,10 +503,7 @@ public class Main : MonoBehaviour
 
     void setTreeTempLevel(Chunk c) {
         updateNeighbours(c);
-        if (c.hasTemp) {
-            updatePartiallyLoadedNeighbourSides(c);
-            return;
-        }
+        if (c.hasTemp) return;
         List<int> temps = new List<int>();
         int num = 0;
         foreach (Chunk n in c.neighbours) {
@@ -512,6 +515,7 @@ public class Main : MonoBehaviour
         int offset = c.parent.tempOffset;
         if (Random.value < 0) {
             c.tempLevel = Chunk.magicBiomeTemp;
+            c.tempIndex = 0;
             c.hasTemp = true;
             return;
         }
@@ -551,7 +555,6 @@ public class Main : MonoBehaviour
         if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
         c.tempIndex = tI;
         c.hasTemp = true;
-        updatePartiallyLoadedNeighbourSides(c);
     }
 
     void updateNeighbours(Chunk c) {
@@ -888,7 +891,7 @@ public class Main : MonoBehaviour
         if (s == 0) {
             int topTI = c.checkNeighbourTempIndex(0);
             int leftTI = c.checkNeighbourTempIndex(3);
-            int totI = 0;
+            /*int totI = 0;
             for (int i = 0; i < borderSize; i++) {
                 int counter = borderSize-i;
                 int w = 0;
@@ -899,6 +902,12 @@ public class Main : MonoBehaviour
                         counter--;
                         w++;
                     } 
+                }
+            }*/
+            for (int i = 0; i < borderSize; i++) {
+                int w1 = borderSize-(i+1);
+                for (int j = 0; j < borderSize; j++) {
+                    tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,leftTI,w1,j);
                 }
             }
         } else if (s == 1) {
@@ -913,7 +922,7 @@ public class Main : MonoBehaviour
         } else if (s == 2) {
             int topTI = c.checkNeighbourTempIndex(0);
             int rightTI = c.checkNeighbourTempIndex(1);
-            int totI = 0;
+            /*int totI = 0;
             for (int i = 0; i < borderSize; i++) {
                 int counter = -i;
                 int w = borderSize-(i+1);
@@ -923,18 +932,25 @@ public class Main : MonoBehaviour
                     if (counter >= 0) w--;
                     counter++;
                 }
+            }*/
+            for (int i = 0; i < borderSize; i++) {
+                int w1 = borderSize-(i+1);
+                for (int j = 0; j < borderSize; j++) {
+                    tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,rightTI,w1,borderSize-(j+1));
+                }
             }
         } else if (s == 3) {
             int rightTI = c.checkNeighbourTempIndex(1);
             for (int j = borderSize-1; j >= 0; j--) {
+                int w = borderSize-(j+1);
                 for (int i = 0; i < area.size.y; i++) {
-                    tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+                    tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,w);
                 }
             }
         } else if (s == 4) {
             int botTI = c.checkNeighbourTempIndex(2);
             int rightTI = c.checkNeighbourTempIndex(1);
-            int totI = (area.size.x*area.size.y)-1;
+            /*int totI = (area.size.x*area.size.y)-1;
             for (int i = 0; i < borderSize; i++) {
                 int counter = borderSize-i;
                 int w = 0;
@@ -945,6 +961,11 @@ public class Main : MonoBehaviour
                         counter--;
                         w++;
                     } 
+                }
+            }*/
+            for (int i = 0; i < borderSize; i++) {
+                for (int j = 0; j < borderSize; j++) {
+                    tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,rightTI,i,borderSize-(j+1));
                 }
             }
         } else if (s == 5) {
@@ -958,7 +979,7 @@ public class Main : MonoBehaviour
         } else if (s == 6) {
             int botTI = c.checkNeighbourTempIndex(2);
             int leftTI = c.checkNeighbourTempIndex(3);
-            int totI = (area.size.x*area.size.y)-1;
+            /*int totI = (area.size.x*area.size.y)-1;
             for (int i = 0; i < borderSize; i++) {
                 int counter = -i;
                 int w = borderSize-(i+1);
@@ -968,13 +989,17 @@ public class Main : MonoBehaviour
                     if (counter >= 0) w--;
                     counter++;
                 }
+            }*/
+            for (int i = 0; i < borderSize; i++) {
+                for (int j = 0; j < borderSize; j++) {
+                    tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,leftTI,i,j);
+                }
             }
         } else if (s == 7) {
             int leftTI = c.checkNeighbourTempIndex(1);
             for (int j = borderSize-1; j >= 0; j--) {
-                int w = borderSize-(j+1);
                 for (int i = 0; i < area.size.y; i++) {
-                    tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+                    tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,j);
                 }
             }
         } else if (s == 8) {
@@ -1019,17 +1044,10 @@ public class Main : MonoBehaviour
             Tile[] tA = new Tile[area.size.x*area.size.y];
 
             if (s == 0) {
-                int totI = 0;
                 for (int i = 0; i < borderSize; i++) {
-                    int counter = borderSize-i;
-                    int w = 0;
+                    int w1 = borderSize-(i+1);
                     for (int j = 0; j < borderSize; j++) {
-                        tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
-                        totI++;
-                        if (counter > 1) {
-                            counter--;
-                            w++;
-                        } 
+                        tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,leftTI,w1,j);
                     }
                 }
             } else if (s == 1) {
@@ -1041,35 +1059,23 @@ public class Main : MonoBehaviour
                     }
                 }
             } else if (s == 2) {
-                int totI = 0;
                 for (int i = 0; i < borderSize; i++) {
-                    int counter = -i;
-                    int w = borderSize-(i+1);
+                    int w1 = borderSize-(i+1);
                     for (int j = 0; j < borderSize; j++) {
-                        tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
-                        totI++;
-                        if (counter >= 0) w--;
-                        counter++;
+                        tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,rightTI,w1,borderSize-(j+1));
                     }
                 }
             } else if (s == 3) {
                 for (int j = borderSize-1; j >= 0; j--) {
+                    int w = borderSize-(j+1);
                     for (int i = 0; i < area.size.y; i++) {
-                        tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+                        tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,w);
                     }
                 }
             } else if (s == 4) {
-                int totI = (area.size.x*area.size.y)-1;
                 for (int i = 0; i < borderSize; i++) {
-                    int counter = borderSize-i;
-                    int w = 0;
                     for (int j = 0; j < borderSize; j++) {
-                        tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
-                        totI--;
-                        if (counter > 1) {
-                            counter--;
-                            w++;
-                        } 
+                        tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,rightTI,i,borderSize-(j+1));
                     }
                 }
             } else if (s == 5) {
@@ -1080,22 +1086,15 @@ public class Main : MonoBehaviour
                     }
                 }
             } else if (s == 6) {
-                int totI = (area.size.x*area.size.y)-1;
                 for (int i = 0; i < borderSize; i++) {
-                    int counter = -i;
-                    int w = borderSize-(i+1);
                     for (int j = 0; j < borderSize; j++) {
-                        tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
-                        totI--;
-                        if (counter >= 0) w--;
-                        counter++;
+                        tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,leftTI,i,j);
                     }
                 }
             } else if (s == 7) {
                 for (int j = borderSize-1; j >= 0; j--) {
-                    int w = borderSize-(j+1);
                     for (int i = 0; i < area.size.y; i++) {
-                        tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+                        tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,j);
                     }
                 }
             } else if (s == 8) {
@@ -1123,17 +1122,10 @@ public class Main : MonoBehaviour
         BoundsInt area = c.sections[0];
         Tile[] tA = new Tile[area.size.x*area.size.y];
 
-        int totI = 0;
         for (int i = 0; i < borderSize; i++) {
-            int counter = borderSize-i;
-            int w = 0;
+            int w1 = borderSize-(i+1);
             for (int j = 0; j < borderSize; j++) {
-                tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
-                totI++;
-                if (counter > 1) {
-                    counter--;
-                    w++;
-                } 
+                tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,leftTI,w1,j);
             }
         }
 
@@ -1155,15 +1147,10 @@ public class Main : MonoBehaviour
         area = c.sections[2];
         tA = new Tile[area.size.x*area.size.y];
 
-        totI = 0;
         for (int i = 0; i < borderSize; i++) {
-            int counter = -i;
-            int w = borderSize-(i+1);
+            int w1 = borderSize-(i+1);
             for (int j = 0; j < borderSize; j++) {
-                tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
-                totI++;
-                if (counter >= 0) w--;
-                counter++;
+                tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,topTI,rightTI,w1,borderSize-(j+1));
             }
         }
 
@@ -1173,8 +1160,9 @@ public class Main : MonoBehaviour
         tA = new Tile[area.size.x*area.size.y];
 
         for (int j = borderSize-1; j >= 0; j--) {
+            int w = borderSize-(j+1);
             for (int i = 0; i < area.size.y; i++) {
-                tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,j);
+                tA[(i*borderSize)+j] = weightedRandTile(curTI,rightTI,w);
             }
         }
 
@@ -1183,17 +1171,9 @@ public class Main : MonoBehaviour
         area = c.sections[4];
         tA = new Tile[area.size.x*area.size.y];
 
-        totI = (area.size.x*area.size.y)-1;
         for (int i = 0; i < borderSize; i++) {
-            int counter = borderSize-i;
-            int w = 0;
             for (int j = 0; j < borderSize; j++) {
-                tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
-                totI--;
-                if (counter > 1) {
-                    counter--;
-                    w++;
-                } 
+                tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,rightTI,i,borderSize-(j+1));
             }
         }
 
@@ -1214,15 +1194,9 @@ public class Main : MonoBehaviour
         area = c.sections[6];
         tA = new Tile[area.size.x*area.size.y];
 
-        totI = (area.size.x*area.size.y)-1;
         for (int i = 0; i < borderSize; i++) {
-            int counter = -i;
-            int w = borderSize-(i+1);
             for (int j = 0; j < borderSize; j++) {
-                tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
-                totI--;
-                if (counter >= 0) w--;
-                counter++;
+                tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,leftTI,i,j);
             }
         }
 
@@ -1232,9 +1206,8 @@ public class Main : MonoBehaviour
         tA = new Tile[area.size.x*area.size.y];
 
         for (int j = borderSize-1; j >= 0; j--) {
-            int w = borderSize-(j+1);
             for (int i = 0; i < area.size.y; i++) {
-                tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,w);
+                tA[(i*borderSize)+j] = weightedRandTile(curTI,leftTI,j);
             }
         }
 
@@ -1276,16 +1249,28 @@ public class Main : MonoBehaviour
         }
     }
 
-    Tile doubleWeightedRandTile(int t, int nT1, int nT2, int w) { // t, nT1 and nT2 are tempIndex not tempLevel
-        if (t == nT1) return weightedRandTile(t,nT2,w);
-        if (t == nT2) return weightedRandTile(t,nT1,w);
-        // w : weight from 0 to chunkSize/2 (distance to next chunk)
-        int nT = nT1;
-        if (Random.value < 0.5f) nT = nT2;
-        if (Random.value < preCalcedFuncVals[w]) {
-            return tiles[nT,Random.Range(0,tiles.GetLength(1))];
+    Tile doubleWeightedRandTile(int t, int nT1, int nT2, int w1, int w2) { // t, nT1/2 tempIndex not tempLevel; w1/2 : weight from 0 to chunkSize/2 (distance to next chunk)
+        //if (t == nT1) return weightedRandTile(t,nT2,w2);
+        //if (t == nT2) return weightedRandTile(t,nT1,w1);
+        int smallerW = w1; //more important
+        int nT01 = nT1;
+        int biggerW = w2; //less important
+        int nT02 = nT2;
+        if (w2 < w1) {
+            smallerW = w2;
+            nT01 = nT2;
+            biggerW = w1;
+            nT02 = nT1;
+        }
+        float r = Random.value;
+        if (r < preCalcedFuncVals[smallerW]) {
+            return tiles[nT01,Random.Range(0,tiles.GetLength(1))];
         } else {
-            return tiles[t,Random.Range(0,tiles.GetLength(1))];
+            if (r < preCalcedFuncVals[biggerW]+preCalcedFuncVals[smallerW]) {
+                return tiles[nT02,Random.Range(0,tiles.GetLength(1))];
+            } else {
+                return tiles[t,Random.Range(0,tiles.GetLength(1))];
+            }
         }
     }
 
