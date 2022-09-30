@@ -119,6 +119,7 @@ public class Chunk : Quadtree
         } else {
             if (!partiallyLoaded || !unloadedSides[s]) {
                 partiallyLoaded = true;
+                //Main.DrawRect(area.min,area.max,Color.red,10000);
                 if (unloadedSides == null) unloadedSides = new bool[4];
                 unloadedSides[s] = true;
             }

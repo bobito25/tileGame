@@ -37,7 +37,7 @@ TODO:
 public class Main : MonoBehaviour
 {
     GameObject g_map;
-    public Tilemap map;
+    public static Tilemap map;
     public Tile[,] tiles;
     public Tile[] debugTiles;
     public Quadtree topTree;
@@ -48,6 +48,7 @@ public class Main : MonoBehaviour
     public static int borderSize = 10; // interpolation border (where biomes mix)
     static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 <= x <= chunkSize/2 (clamped for x >= 8)
     public static int preloadDistance = (Chunk.numTempLevels / 2) + 1;
+    public Queue<Loadable> toLoad;
 
     public GameObject player;
     public Animator playerAnim;
@@ -88,6 +89,8 @@ public class Main : MonoBehaviour
 
         Camera.main.orthographicSize = 10;
         
+        toLoad = new Queue<Loadable>();
+
         loadChunksAtPlayerPos();
         removeObstaclesAtPlayerPos();
         lastTree = getTreeFromPos(player.transform.position);
@@ -123,6 +126,7 @@ public class Main : MonoBehaviour
             player.transform.localScale = new Vector3(-1,1,1);
         }
         move();
+        if (toLoad.Count > 0) toLoad.Dequeue().load();
     }
 
     void FixedUpdate()
@@ -142,7 +146,6 @@ public class Main : MonoBehaviour
         }
         
         updateSortingOrder();
-        //if (time % 100 == 0) 
     }
 
     void updateSortingOrder() {
@@ -339,8 +342,30 @@ public class Main : MonoBehaviour
             }
         }
         setTreeTempLevel(playerC);
-        foreach (Chunk c in playerC.neighbours) {
+        /*foreach (Chunk c in playerC.neighbours) {
             setTreeTempLevel(c);
+        }*/
+        for (int r = 1; r <= preloadDistance; r++) {
+            int tileR = chunkSize * r;
+            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
+            Chunk curC = getTreeFromPos(startP);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                setTreeTempLevel(curC);
+                curC = curC.neighbours[3];
+            }
+            for (int i = 0; i < d; i++) {
+                setTreeTempLevel(curC);
+                curC = curC.neighbours[5];
+            }
+            for (int i = 0; i < d; i++) {
+                setTreeTempLevel(curC);
+                curC = curC.neighbours[7];
+            }
+            for (int i = 0; i < d; i++) {
+                setTreeTempLevel(curC);
+                curC = curC.neighbours[1];
+            }
         }
         updatePartiallyLoadedSides(playerC);
         foreach (Chunk c in playerC.neighbours) {
@@ -1069,7 +1094,7 @@ public class Main : MonoBehaviour
             Debug.Log("e: section int not valid (loadTilesAtSection in Main)");
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
 
         foreach (var p in c.area.allPositionsWithin) {
             int r = Random.Range(0,4);
@@ -1162,7 +1187,7 @@ public class Main : MonoBehaviour
                 for (int i = 0; i < tA.Length; i++) tA[i] = tiles[curTI,Random.Range(0,tiles.GetLength(1))];
             }
 
-            map.SetTilesBlock(area,tA);
+            toLoad.Enqueue(new Loadable(tA,area));
 
             foreach (var p in c.area.allPositionsWithin) {
                 int r = Random.Range(0,4);
@@ -1190,7 +1215,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
 
         area = c.sections[1];
         tA = new Tile[area.size.x*area.size.y];
@@ -1203,7 +1228,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[2];
         tA = new Tile[area.size.x*area.size.y];
@@ -1215,7 +1240,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[3];
         tA = new Tile[area.size.x*area.size.y];
@@ -1227,7 +1252,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[4];
         tA = new Tile[area.size.x*area.size.y];
@@ -1238,7 +1263,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[5];
         tA = new Tile[area.size.x*area.size.y];
@@ -1250,7 +1275,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[6];
         tA = new Tile[area.size.x*area.size.y];
@@ -1261,7 +1286,7 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[7];
         tA = new Tile[area.size.x*area.size.y];
@@ -1272,14 +1297,14 @@ public class Main : MonoBehaviour
             }
         }
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
         
         area = c.sections[8];
         tA = new Tile[area.size.x*area.size.y];
 
         for (int i = 0; i < tA.Length; i++) tA[i] = tiles[curTI,Random.Range(0,tiles.GetLength(1))];
 
-        map.SetTilesBlock(area,tA);
+        toLoad.Enqueue(new Loadable(tA,area));
 
         foreach (var p in c.area.allPositionsWithin) {
             int r = Random.Range(0,4);
@@ -1541,3 +1566,4 @@ public class Main : MonoBehaviour
         UnityEngine.Debug.DrawLine(new Vector3(min.x, max.y), new Vector3(max.x,min.y), color, duration);
     }
 }
+
