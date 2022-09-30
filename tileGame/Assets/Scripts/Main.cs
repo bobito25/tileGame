@@ -32,8 +32,6 @@ TODO:
 
 -- fix neighbours being set more than needed
 
--- load further temp of further away chunks to prevent partially loaded chunks and magic biome problem
-
 */
 
 public class Main : MonoBehaviour
@@ -45,10 +43,11 @@ public class Main : MonoBehaviour
     public Quadtree topTree;
 
     public static int chunkSize = 30; //length of one side -> should be even
-    public static int quadtreeMaxLevel = 1;
+    public static int quadtreeMaxLevel = 1; // starts at one
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
     public static int borderSize = 10; // interpolation border (where biomes mix)
     static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 <= x <= chunkSize/2 (clamped for x >= 8)
+    public static int preloadDistance = (Chunk.numTempLevels / 2) + 1;
 
     public GameObject player;
     public Animator playerAnim;
@@ -238,7 +237,7 @@ public class Main : MonoBehaviour
     }
 
     void loadChunksAtPlayerPos() {
-        Chunk cur = getTreeFromPos(player.transform.position);
+        /*Chunk cur = getTreeFromPos(player.transform.position);
         Chunk[] n = new Chunk[8];
         n[0] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize,0));
         n[1] = getTreeFromPos(player.transform.position + new Vector3(0,chunkSize,0));
@@ -291,6 +290,64 @@ public class Main : MonoBehaviour
         }
         loadChunkAtTree(cur);
         foreach (Chunk c in cur.neighbours) {
+            loadChunkAtTree(c);
+        }*/
+
+        Chunk playerC = getTreeFromPos(player.transform.position);
+        for (int r = 1; r <= preloadDistance; r++) {
+            int tileR = chunkSize * r;
+            Vector3 curP = player.transform.position + new Vector3(-tileR,tileR,0);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                getTreeFromPos(curP);
+                curP.x += chunkSize;
+            }
+            for (int i = 0; i < d; i++) {
+                getTreeFromPos(curP);
+                curP.y -= chunkSize;
+            }
+            for (int i = 0; i < d; i++) {
+                getTreeFromPos(curP);
+                curP.x -= chunkSize;
+            }
+            for (int i = 0; i < d; i++) {
+                getTreeFromPos(curP);
+                curP.y += chunkSize;
+            }
+        }
+        updateNeighbours(playerC);
+        for (int r = 1; r <= preloadDistance; r++) {
+            int tileR = chunkSize * r;
+            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
+            Chunk curC = getTreeFromPos(startP);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                updateNeighbours(curC);
+                curC = curC.neighbours[3];
+            }
+            for (int i = 0; i < d; i++) {
+                updateNeighbours(curC);
+                curC = curC.neighbours[5];
+            }
+            for (int i = 0; i < d; i++) {
+                updateNeighbours(curC);
+                curC = curC.neighbours[7];
+            }
+            for (int i = 0; i < d; i++) {
+                updateNeighbours(curC);
+                curC = curC.neighbours[1];
+            }
+        }
+        setTreeTempLevel(playerC);
+        foreach (Chunk c in playerC.neighbours) {
+            setTreeTempLevel(c);
+        }
+        updatePartiallyLoadedSides(playerC);
+        foreach (Chunk c in playerC.neighbours) {
+            updatePartiallyLoadedSides(c);
+        }
+        loadChunkAtTree(playerC);
+        foreach (Chunk c in playerC.neighbours) {
             loadChunkAtTree(c);
         }
     }
@@ -506,7 +563,7 @@ public class Main : MonoBehaviour
     }
 
     void setTreeTempLevel(Chunk c) {
-        updateNeighbours(c);
+        //updateNeighbours(c);
         if (c.hasTemp) return;
         List<int> temps = new List<int>();
         int num = 0;
