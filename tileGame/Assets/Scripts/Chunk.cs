@@ -51,7 +51,7 @@ public class Chunk : Quadtree
         sections[7].SetMinMax(new Vector3Int(a.x,a.y+b,0), new Vector3Int(a.x+b,a.yMax-b,1));
         sections[8].SetMinMax(new Vector3Int(a.x+b,a.y+b,0), new Vector3Int(a.xMax-b,a.yMax-b,1));
 
-        /* alternative
+        /* alternative (better?)
         sections = new BoundsInt[9];
         int b = Main.borderSize;
         int c = Main.chunkSize;
@@ -117,9 +117,9 @@ public class Chunk : Quadtree
         if (neighbours[n] != null && neighbours[n].hasTemp) {
             return neighbours[n].tempIndex;
         } else {
+            Debug.Log("e: neighbour for tempIndex should be preloaded but is null or missing temp - effected sections will be reloaded when possible (checkNeighbourTempIndex in Chunk)");
             if (!partiallyLoaded || !unloadedSides[s]) {
                 partiallyLoaded = true;
-                //Main.DrawRect(area.min,area.max,Color.red,10000);
                 if (unloadedSides == null) unloadedSides = new bool[4];
                 unloadedSides[s] = true;
             }

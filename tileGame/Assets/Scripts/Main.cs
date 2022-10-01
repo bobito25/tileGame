@@ -13,24 +13,20 @@ TODO:
 
 -- make trees spawn in groups (sometimes?)
 
--- implement neighours for chunks
- -> done?: loaded chunks see neighbouring loaded chunks as neighbours
+-- remake character
 
 -- make player animation
  -> side walk animation done?
 
--- remake character
-
--- make chunk borders less defined
- -> done?: need to fix corners (add more sections so biome on one side cant effect tiles on the other side of the corner)
+-- change order of temp loading to fix magic biome problem
 
 -- add semi chunks that can be multiple biomes
 
--- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps (for performance)
+-- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps for performance
 
 -- make all textures 20 x 20 like character
 
--- fix neighbours being set more than needed
+-- fix neighbours being checked more than needed (unimportant)
 
 */
 
@@ -39,7 +35,7 @@ public class Main : MonoBehaviour
     GameObject g_map;
     public static Tilemap map;
     public Tile[,] tiles;
-    public Tile[] debugTiles;
+    public static Tile[] debugTiles;
     public Quadtree topTree;
 
     public static int chunkSize = 30; //length of one side -> should be even
@@ -56,16 +52,22 @@ public class Main : MonoBehaviour
     Vector3 nextMove;
     Quadtree lastTree;
 
-    public GameObject[] obstacles;
+    public static GameObject[] obstacles;
     public int obstaclesPerTile;
+    public int[] obstaclesPerTemp; // uses temp index
 
     public static int time;
 
     public static GameObject[] debugChunkSquares;
 
-    public static bool debug_drawTrees = false;
-    public static bool debug_drawTempColors = false;
-    public static bool debug_drawTempOffsets = false;
+    public bool autoWalk = true;
+    public int autoWalkCounter = 0;
+    public int autoWalkDir = 0;
+    public int autoWalkLength = 30;
+
+    public bool debug_drawTrees = false;
+    public bool debug_drawTempColors = false;
+    public bool debug_drawTempOffsets = false;
 
 
     // Start is called before the first frame update
@@ -84,6 +86,7 @@ public class Main : MonoBehaviour
         playerSpeed = 10;
 
         obstaclesPerTile = 100;
+        obstaclesPerTemp = new int[] {0,0,obstaclesPerTile/3,obstaclesPerTile,obstaclesPerTile/3,obstaclesPerTile/10};
 
         time = 0;
 
@@ -132,6 +135,31 @@ public class Main : MonoBehaviour
     void FixedUpdate()
     {
         time++;
+
+        if (autoWalk) {
+            if (autoWalkCounter >= autoWalkLength) autoWalk = false;
+            if (time % 30 == 0) {
+                if (autoWalkDir == 0) {
+                    player.transform.Translate(new Vector3(0,chunkSize,0));
+                    if (player.transform.position.y >= chunkSize*autoWalkLength) {
+                        autoWalkDir = 1;
+                        autoWalkCounter++;
+                    }
+                } else if (autoWalkDir == 1){
+                    player.transform.Translate(new Vector3(chunkSize,0,0));
+                    if (player.transform.position.x >= chunkSize*autoWalkCounter*3) autoWalkDir = 2;
+                } else if (autoWalkDir == 2){
+                    player.transform.Translate(new Vector3(0,-chunkSize,0));
+                    if (player.transform.position.y <= 0) {
+                        autoWalkDir = 3;
+                        autoWalkCounter++;
+                    }
+                } else {
+                    player.transform.Translate(new Vector3(chunkSize,0,0));
+                    if (player.transform.position.x >= chunkSize*autoWalkCounter*3) autoWalkDir = 0;
+                }
+            }
+        }
         
         if (time % 10 == 0) {
             bool newChunk = lastTree != getTreeFromPos(player.transform.position);
@@ -161,23 +189,37 @@ public class Main : MonoBehaviour
     void initObstacles() {
         obstacles = new GameObject[2];
         initTreeObs();
-        initStoneObs();
+        //initStoneObs();
     }
 
     void initTreeObs() {
-        byte[] b_tree = File.ReadAllBytes("Assets/Entities/tree1.png");
-        Texture2D t_tree = new Texture2D(10,10);
-        t_tree.LoadImage(b_tree);
-        t_tree.filterMode = FilterMode.Point;
-        Sprite s_tree = Sprite.Create(t_tree, new Rect(0,0,t_tree.width,t_tree.height),new Vector2(0f, 0f),10);
-        GameObject firstTree = new GameObject("tree");
-        firstTree.layer = 10;
-        firstTree.SetActive(false);
-        SpriteRenderer sr = firstTree.AddComponent<SpriteRenderer>() as SpriteRenderer;
-        sr.sprite = s_tree;
-        BoxCollider2D collider = firstTree.AddComponent<BoxCollider2D>() as BoxCollider2D;
-        collider.size = new Vector2(1,1);
-        obstacles[0] = firstTree;
+        byte[] b_tree1 = File.ReadAllBytes("Assets/Entities/tree3_x20.png");
+        Texture2D t_tree1 = new Texture2D(20,40);
+        t_tree1.LoadImage(b_tree1);
+        t_tree1.filterMode = FilterMode.Point;
+        Sprite s_tree1 = Sprite.Create(t_tree1, new Rect(0,0,t_tree1.width,t_tree1.height),new Vector2(0f, 0f),20);
+        GameObject firstTree1 = new GameObject("tree");
+        firstTree1.layer = 10;
+        firstTree1.SetActive(false);
+        SpriteRenderer sr1 = firstTree1.AddComponent<SpriteRenderer>() as SpriteRenderer;
+        sr1.sprite = s_tree1;
+        BoxCollider2D collider1 = firstTree1.AddComponent<BoxCollider2D>() as BoxCollider2D;
+        collider1.size = new Vector2(1,1);
+        obstacles[0] = firstTree1;
+
+        byte[] b_tree1_f = File.ReadAllBytes("Assets/Entities/tree3_x20_f.png");
+        Texture2D t_tree1_f = new Texture2D(20,40);
+        t_tree1_f.LoadImage(b_tree1_f);
+        t_tree1_f.filterMode = FilterMode.Point;
+        Sprite s_tree1_f = Sprite.Create(t_tree1_f, new Rect(0,0,t_tree1_f.width,t_tree1_f.height),new Vector2(0f, 0f),20);
+        GameObject firstTree1_f = new GameObject("tree");
+        firstTree1_f.layer = 10;
+        firstTree1_f.SetActive(false);
+        SpriteRenderer sr1_f = firstTree1_f.AddComponent<SpriteRenderer>() as SpriteRenderer;
+        sr1_f.sprite = s_tree1_f;
+        BoxCollider2D collider1_f = firstTree1_f.AddComponent<BoxCollider2D>() as BoxCollider2D;
+        collider1_f.size = new Vector2(1,1);
+        obstacles[1] = firstTree1_f;
     }
 
     void initStoneObs() {
@@ -240,62 +282,6 @@ public class Main : MonoBehaviour
     }
 
     void loadChunksAtPlayerPos() {
-        /*Chunk cur = getTreeFromPos(player.transform.position);
-        Chunk[] n = new Chunk[8];
-        n[0] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize,0));
-        n[1] = getTreeFromPos(player.transform.position + new Vector3(0,chunkSize,0));
-        n[2] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize,0));
-        n[3] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,0,0));
-        n[4] = getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize,0));
-        n[5] = getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize,0));
-        n[6] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize,0));
-        n[7] = getTreeFromPos(player.transform.position + new Vector3(-chunkSize,0,0));
-        n[0].addNeighbour(n[1],3);
-        n[0].addNeighbour(cur,4);
-        n[0].addNeighbour(n[7],5);
-        n[1].addNeighbour(n[2],3);
-        n[1].addNeighbour(n[3],4);
-        n[1].addNeighbour(cur,5);
-        n[1].addNeighbour(n[7],6);
-        n[1].addNeighbour(n[0],7);
-        n[2].addNeighbour(n[3],5);
-        n[2].addNeighbour(cur,6);
-        n[2].addNeighbour(n[1],7);
-        n[3].addNeighbour(n[4],5);
-        n[3].addNeighbour(n[5],6);
-        n[3].addNeighbour(cur,7);
-        n[3].addNeighbour(n[1],0);
-        n[3].addNeighbour(n[2],1);
-        n[4].addNeighbour(n[5],7);
-        n[4].addNeighbour(cur,0);
-        n[4].addNeighbour(n[3],1);
-        n[5].addNeighbour(n[6],7);
-        n[5].addNeighbour(n[7],0);
-        n[5].addNeighbour(cur,1);
-        n[5].addNeighbour(n[3],2);
-        n[5].addNeighbour(n[4],3);
-        n[6].addNeighbour(n[7],1);
-        n[6].addNeighbour(cur,2);
-        n[6].addNeighbour(n[5],3);
-        n[7].addNeighbour(n[0],1);
-        n[7].addNeighbour(n[1],2);
-        n[7].addNeighbour(cur,3);
-        n[7].addNeighbour(n[5],4);
-        n[7].addNeighbour(n[6],5);
-        cur.neighbours = n;
-        setTreeTempLevel(cur);
-        foreach (Chunk c in cur.neighbours) {
-            setTreeTempLevel(c);
-        }
-        updatePartiallyLoadedSides(cur);
-        foreach (Chunk c in cur.neighbours) {
-            updatePartiallyLoadedSides(c);
-        }
-        loadChunkAtTree(cur);
-        foreach (Chunk c in cur.neighbours) {
-            loadChunkAtTree(c);
-        }*/
-
         Chunk playerC = getTreeFromPos(player.transform.position);
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
@@ -367,8 +353,8 @@ public class Main : MonoBehaviour
                 curC = curC.neighbours[1];
             }
         }
-        updatePartiallyLoadedSides(playerC);
-        foreach (Chunk c in playerC.neighbours) {
+        updatePartiallyLoadedSides(playerC);        // theoretically
+        foreach (Chunk c in playerC.neighbours) {   //   unneeded
             updatePartiallyLoadedSides(c);
         }
         loadChunkAtTree(playerC);
@@ -424,7 +410,7 @@ public class Main : MonoBehaviour
     void placeObstacles(Chunk q) {
         BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
-        for (int i = 0; i < obstaclesPerTile; i++) {
+        for (int i = 0; i < obstaclesPerTemp[q.tempIndex]; i++) {
             placeObstacle(area,os,3);
         }
         q.setObstacles(os);
@@ -977,19 +963,6 @@ public class Main : MonoBehaviour
         if (s == 0) {
             int topTI = c.checkNeighbourTempIndex(0);
             int leftTI = c.checkNeighbourTempIndex(3);
-            /*int totI = 0;
-            for (int i = 0; i < borderSize; i++) {
-                int counter = borderSize-i;
-                int w = 0;
-                for (int j = 0; j < borderSize; j++) {
-                    tA[totI] = doubleWeightedRandTile(curTI,topTI,leftTI,w);
-                    totI++;
-                    if (counter > 1) {
-                        counter--;
-                        w++;
-                    } 
-                }
-            }*/
             for (int i = 0; i < borderSize; i++) {
                 int w1 = borderSize-(i+1);
                 for (int j = 0; j < borderSize; j++) {
@@ -1008,17 +981,6 @@ public class Main : MonoBehaviour
         } else if (s == 2) {
             int topTI = c.checkNeighbourTempIndex(0);
             int rightTI = c.checkNeighbourTempIndex(1);
-            /*int totI = 0;
-            for (int i = 0; i < borderSize; i++) {
-                int counter = -i;
-                int w = borderSize-(i+1);
-                for (int j = 0; j < borderSize; j++) {
-                    tA[totI] = doubleWeightedRandTile(curTI,topTI,rightTI,w);
-                    totI++;
-                    if (counter >= 0) w--;
-                    counter++;
-                }
-            }*/
             for (int i = 0; i < borderSize; i++) {
                 int w1 = borderSize-(i+1);
                 for (int j = 0; j < borderSize; j++) {
@@ -1036,19 +998,6 @@ public class Main : MonoBehaviour
         } else if (s == 4) {
             int botTI = c.checkNeighbourTempIndex(2);
             int rightTI = c.checkNeighbourTempIndex(1);
-            /*int totI = (area.size.x*area.size.y)-1;
-            for (int i = 0; i < borderSize; i++) {
-                int counter = borderSize-i;
-                int w = 0;
-                for (int j = 0; j < borderSize; j++) {
-                    tA[totI] = doubleWeightedRandTile(curTI,botTI,rightTI,w);
-                    totI--;
-                    if (counter > 1) {
-                        counter--;
-                        w++;
-                    } 
-                }
-            }*/
             for (int i = 0; i < borderSize; i++) {
                 for (int j = 0; j < borderSize; j++) {
                     tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,rightTI,i,borderSize-(j+1));
@@ -1065,17 +1014,6 @@ public class Main : MonoBehaviour
         } else if (s == 6) {
             int botTI = c.checkNeighbourTempIndex(2);
             int leftTI = c.checkNeighbourTempIndex(3);
-            /*int totI = (area.size.x*area.size.y)-1;
-            for (int i = 0; i < borderSize; i++) {
-                int counter = -i;
-                int w = borderSize-(i+1);
-                for (int j = 0; j < borderSize; j++) {
-                    tA[totI] = doubleWeightedRandTile(curTI,botTI,leftTI,w);
-                    totI--;
-                    if (counter >= 0) w--;
-                    counter++;
-                }
-            }*/
             for (int i = 0; i < borderSize; i++) {
                 for (int j = 0; j < borderSize; j++) {
                     tA[(i*borderSize)+j] = doubleWeightedRandTile(curTI,botTI,leftTI,i,j);
@@ -1370,35 +1308,7 @@ public class Main : MonoBehaviour
         }
     }
 
-    void updatePartiallyLoadedSides(Chunk c) {
-        /*Chunk n = c.neighbours[1];
-        if (n != null && n.partiallyLoaded && n.unloadedSides[0]) {
-            //reload top
-            loadTilesAtSide(n,0);
-            n.unloadedSides[0] = false;
-            n.checkDoneLoading();
-        }
-        n = c.neighbours[3];
-        if (n != null && n.partiallyLoaded && n.unloadedSides[1]) {
-            //reload right
-            loadTilesAtSide(n,1);
-            n.unloadedSides[1] = false;
-            n.checkDoneLoading();
-        }
-        n = c.neighbours[5];
-        if (n != null && n.partiallyLoaded && n.unloadedSides[2]) {
-            //reload bottom
-            loadTilesAtSide(n,2);
-            n.unloadedSides[2] = false;
-            n.checkDoneLoading();
-        }
-        n = c.neighbours[7];
-        if (n != null && n.partiallyLoaded && n.unloadedSides[3]) {
-            //reload left
-            loadTilesAtSide(n,3);
-            n.unloadedSides[3] = false;
-            n.checkDoneLoading();
-        }*/
+    void updatePartiallyLoadedSides(Chunk c) { //theoretically unneeded
         if (!c.partiallyLoaded) return;
         for (int i = 0; i < 4; i++) {
             Chunk n = c.neighbours[(2*i)+1];

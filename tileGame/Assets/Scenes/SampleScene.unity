@@ -341,11 +341,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4eb490b9ed2ea846a57797f3eff510a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  map: {fileID: 0}
   player: {fileID: 0}
+  playerAnim: {fileID: 0}
   playerSpeed: 0
-  obstacles: []
   obstaclesPerTile: 0
+  autoWalk: 0
+  autoWalkCounter: 0
+  autoWalkDir: 0
+  autoWalkLength: 30
+  debug_drawTrees: 0
+  debug_drawTempColors: 0
+  debug_drawTempOffsets: 0
 --- !u!4 &2069945389
 Transform:
   m_ObjectHideFlags: 0
