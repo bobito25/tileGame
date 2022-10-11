@@ -8,15 +8,9 @@ using System.IO;
 
 TODO:
 
--- optimize placing obstacles (current implementation keeps randomly placing until no overlap -> inefficient for large num of obstacles in chunk)
- -> kinda done: will try to place 3 times before giving up
-
--- make trees spawn in groups (sometimes?)
-
 -- remake character
 
--- make player animation
- -> side walk animation done?
+-- remake player animation
 
 -- change order of temp loading to fix magic biome problem
 
@@ -24,9 +18,14 @@ TODO:
 
 -- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps for performance
 
--- make all textures 20 x 20 like character
+-- make more obstacles (trees, stones)
 
--- fix neighbours being checked more than needed (unimportant)
+-- fix neighbours being checked more than needed (not very important)
+
+-- optimize placing obstacles (current implementation keeps randomly placing until no overlap -> inefficient for large num of obstacles in chunk)
+ -> kinda done: will try to place 3 times before giving up
+
+-- make trees spawn in groups (sometimes?)
 
 */
 
