@@ -282,6 +282,7 @@ public class Main : MonoBehaviour
 
     void loadChunksAtPlayerPos() {
         Chunk playerC = getTreeFromPos(player.transform.position);
+        // make sure chunks exist in quadtree in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
             Vector3 curP = player.transform.position + new Vector3(-tileR,tileR,0);
@@ -304,6 +305,7 @@ public class Main : MonoBehaviour
             }
         }
         updateNeighbours(playerC);
+        // update neighbours of chunks in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
             Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
@@ -330,6 +332,7 @@ public class Main : MonoBehaviour
         /*foreach (Chunk c in playerC.neighbours) {
             setTreeTempLevel(c);
         }*/
+        // set chunk temp levels in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
             Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
@@ -352,10 +355,15 @@ public class Main : MonoBehaviour
                 curC = curC.neighbours[1];
             }
         }
+        // check for temp error (magicTemp)
+        
+        // fix temp error
+
         updatePartiallyLoadedSides(playerC);        // theoretically
         foreach (Chunk c in playerC.neighbours) {   //   unneeded
             updatePartiallyLoadedSides(c);
         }
+        // (graphically) load chunks
         loadChunkAtTree(playerC);
         foreach (Chunk c in playerC.neighbours) {
             loadChunkAtTree(c);
