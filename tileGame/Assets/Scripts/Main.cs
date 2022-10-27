@@ -192,7 +192,7 @@ public class Main : MonoBehaviour
     }
 
     void initTreeObs() {
-        byte[] b_tree1 = File.ReadAllBytes("Assets/Entities/tree3_x20.png");
+        byte[] b_tree1 = File.ReadAllBytes("Assets/Entities/pineTree2_x20.png");
         Texture2D t_tree1 = new Texture2D(20,40);
         t_tree1.LoadImage(b_tree1);
         t_tree1.filterMode = FilterMode.Point;
