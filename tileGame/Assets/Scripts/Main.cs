@@ -334,30 +334,31 @@ public class Main : MonoBehaviour
         }*/
         // set chunk temp levels in spiral
         for (int r = 1; r <= preloadDistance; r++) {
+            setTempLevelWithRadius(r);
+        }
+        // add hasTemp to preTemp
+        for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
             Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
             Chunk curC = getTreeFromPos(startP);
             int d = r * 2;
             for (int i = 0; i < d; i++) {
-                setTreeTempLevel(curC);
+                curC.hasTemp = true;
                 curC = curC.neighbours[3];
             }
             for (int i = 0; i < d; i++) {
-                setTreeTempLevel(curC);
+                curC.hasTemp = true;
                 curC = curC.neighbours[5];
             }
             for (int i = 0; i < d; i++) {
-                setTreeTempLevel(curC);
+                curC.hasTemp = true;
                 curC = curC.neighbours[7];
             }
             for (int i = 0; i < d; i++) {
-                setTreeTempLevel(curC);
+                curC.hasTemp = true;
                 curC = curC.neighbours[1];
             }
         }
-        // check for temp error (magicTemp)
-        
-        // fix temp error
 
         updatePartiallyLoadedSides(playerC);        // theoretically
         foreach (Chunk c in playerC.neighbours) {   //   unneeded
@@ -367,6 +368,54 @@ public class Main : MonoBehaviour
         loadChunkAtTree(playerC);
         foreach (Chunk c in playerC.neighbours) {
             loadChunkAtTree(c);
+        }
+    }
+
+    void setTempLevelWithRadius(int r) {
+        int tileR = chunkSize * r;
+            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
+            Chunk curC = getTreeFromPos(startP);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                if (!setPreTreeTempLevel(curC);) {
+                    fixChunkTemp(curC);
+                    return;
+                }
+                curC = curC.neighbours[3];
+            }
+            for (int i = 0; i < d; i++) {
+                if (!setPreTreeTempLevel(curC);) {
+                    fixChunkTemp(curC);
+                    return;
+                }
+                curC = curC.neighbours[5];
+            }
+            for (int i = 0; i < d; i++) {
+                if (!setPreTreeTempLevel(curC);) {
+                    fixChunkTemp(curC);
+                    return;
+                }
+                curC = curC.neighbours[7];
+            }
+            for (int i = 0; i < d; i++) {
+                if (!setPreTreeTempLevel(curC);) {
+                    fixChunkTemp(curC);
+                    return;
+                }
+                curC = curC.neighbours[1];
+            }
+    }
+
+    void fixChunkTemp(Chunk c) {
+        setTreeTempLevel(curC);
+        unsetNeighboursPreTemp(curC);
+        setTempLevelWithRadius(r-1);
+        setTempLevelWithRadius(r);
+    }
+
+    void unsetNeighboursPreTemp(Chunk c) {
+        for (Chunk n in c.neighbours) {
+            n.preTemp = false;
         }
     }
 
@@ -580,9 +629,9 @@ public class Main : MonoBehaviour
         }
     }
 
-    void setTreeTempLevel(Chunk c) {
+    bool setTreeTempLevel(Chunk c) {
         //updateNeighbours(c);
-        if (c.hasTemp) return;
+        if (c.hasTemp) return true;
         List<int> temps = new List<int>();
         int num = 0;
         foreach (Chunk n in c.neighbours) {
@@ -596,6 +645,65 @@ public class Main : MonoBehaviour
             c.tempLevel = Chunk.magicBiomeTemp;
             c.tempIndex = 0;
             c.hasTemp = true;
+            c.preTemp = true;
+            return true;
+        }
+        if (num == 0) {
+            c.tempLevel = offset;
+        } else if (num == 1) {
+            c.tempLevel = temps[0] + offset;
+            if (c.tempLevel > Chunk.maxTempLevel) {
+                c.tempLevel = Chunk.maxTempLevel;
+            } else if (c.tempLevel < Chunk.minTempLevel) {
+                c.tempLevel = Chunk.minTempLevel;
+            }
+        } else if (num == 2) {
+            int maxT = Mathf.Max(temps[0],temps[1]);
+            int minT = Mathf.Min(temps[0],temps[1]);
+            if (maxT - minT < 2) {
+                if (offset == 1) {
+                    c.tempLevel = maxT;
+                } else if (offset == -1) {
+                    c.tempLevel = minT;
+                } else {
+                    c.tempLevel = temps[Random.Range(0,2)];
+                }
+            } else {
+                c.tempLevel = (maxT+minT)/2;
+            }
+        } else {
+            int maxT = Mathf.Max(temps.ToArray());
+            int minT = Mathf.Min(temps.ToArray());
+            if (maxT - minT < 3) {
+                c.tempLevel = (maxT+minT)/2;
+            } else {
+                return false;
+            }
+        }
+        int tI = c.tempLevel + Chunk.maxTempLevel + 1;
+        if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
+        c.tempIndex = tI;
+        c.hasTemp = true;
+        c.preTemp = true;
+        return true;
+    }
+
+    void setTreePreTempLevel(Chunk c) {
+        //updateNeighbours(c);
+        if (c.hasTemp) return;
+        List<int> temps = new List<int>();
+        int num = 0;
+        foreach (Chunk n in c.neighbours) {
+            if (n != null && n.preTemp && n.tempLevel != Chunk.magicBiomeTemp && !temps.Contains(n.tempLevel)) {
+                temps.Add(n.tempLevel);
+                num++;
+            }
+        }
+        int offset = c.parent.tempOffset;
+        if (Random.value < 0) {
+            c.tempLevel = Chunk.magicBiomeTemp;
+            c.tempIndex = 0;
+            c.preTemp = true;
             return;
         }
         if (num == 0) {
@@ -633,7 +741,7 @@ public class Main : MonoBehaviour
         int tI = c.tempLevel + Chunk.maxTempLevel + 1;
         if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
         c.tempIndex = tI;
-        c.hasTemp = true;
+        c.preTemp = true;
     }
 
     void updateNeighbours(Chunk c) {
