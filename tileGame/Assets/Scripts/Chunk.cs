@@ -29,6 +29,8 @@ public class Chunk : Quadtree
 
     public static int magicBiomeTemp = 25;
 
+    public Biome biome;
+
     public Chunk(Quadtree p, BoundsInt a) : base(p,a) {
         loaded = false;
         partiallyLoaded = false;

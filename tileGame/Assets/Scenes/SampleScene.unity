@@ -345,6 +345,7 @@ MonoBehaviour:
   playerAnim: {fileID: 0}
   playerSpeed: 0
   obstaclesPerTile: 0
+  obstaclesPerTemp: 
   autoWalk: 0
   autoWalkCounter: 0
   autoWalkDir: 0
