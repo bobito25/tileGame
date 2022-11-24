@@ -6,6 +6,9 @@ public class Chunk : Quadtree
 {
     public Chunk[] neighbours;
 
+    public Vector2Int pos;
+    public bool hasPos;
+
     bool loaded;
     public bool partiallyLoaded;
     public bool[] unloadedSides;
@@ -24,7 +27,7 @@ public class Chunk : Quadtree
     public static int maxTempLevel = 2;
     public static int numTempLevels = 5;
     public bool hasTemp;
-    public bool preTemp;
+    public bool tempIsFinal;
     public int tempIndex;
 
     public static int magicBiomeTemp = 25;
@@ -37,7 +40,8 @@ public class Chunk : Quadtree
         obstaclesLoaded = false;
         neighbours = new Chunk[8];
         hasTemp = false;
-        preTemp = false;
+        tempIsFinal = false;
+        hasPos = false;
         setSections(a);
     }
 

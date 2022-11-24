@@ -341,6 +341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4eb490b9ed2ea846a57797f3eff510a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  seed: {x: 0, y: 0}
   player: {fileID: 0}
   playerAnim: {fileID: 0}
   playerSpeed: 0
