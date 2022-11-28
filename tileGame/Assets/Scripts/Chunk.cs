@@ -27,7 +27,6 @@ public class Chunk : Quadtree
     public static int maxTempLevel = 2;
     public static int numTempLevels = 5;
     public bool hasTemp;
-    public bool tempIsFinal;
     public int tempIndex;
 
     public static int magicBiomeTemp = 25;
@@ -40,7 +39,6 @@ public class Chunk : Quadtree
         obstaclesLoaded = false;
         neighbours = new Chunk[8];
         hasTemp = false;
-        tempIsFinal = false;
         hasPos = false;
         setSections(a);
     }

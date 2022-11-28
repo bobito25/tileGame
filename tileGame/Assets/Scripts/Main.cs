@@ -116,10 +116,6 @@ public class Main : MonoBehaviour
     {
         resetMove();
         if (Input.GetMouseButtonDown(0)) {
-            /*float o = 0.333f;
-            for (int i = 0; i < 5; i++) {
-                Debug.Log(Mathf.PerlinNoise(o+((float)i)/10,o+((float)i)/10));
-            }*/
             Chunk playerC = getTreeFromPos(player.transform.position);
             Debug.Log(playerC.pos);
         }
@@ -288,60 +284,10 @@ public class Main : MonoBehaviour
         ((Chunk)topTree).tempLevel = 0;
         ((Chunk)topTree).tempIndex = Chunk.maxTempLevel+1;
         ((Chunk)topTree).hasTemp = true;
-        ((Chunk)topTree).tempIsFinal = true;
     }
 
     void loadChunksAtPlayerPos() {
         Chunk playerC = getTreeFromPos(player.transform.position);
-        /*if (usePerlinNoiseForMapGen) {
-            for (int r = 1; r <= preloadDistance; r++) {
-                int tileR = chunkSize * r;
-                Vector3 curP = player.transform.position + new Vector3(-tileR,tileR,0);
-                int d = r * 2;
-                for (int i = 0; i < d; i++) {
-                    getTreeFromPos(curP);
-                    curP.x += chunkSize;
-                }
-                for (int i = 0; i < d; i++) {
-                    getTreeFromPos(curP);
-                    curP.y -= chunkSize;
-                }
-                for (int i = 0; i < d; i++) {
-                    getTreeFromPos(curP);
-                    curP.x -= chunkSize;
-                }
-                for (int i = 0; i < d; i++) {
-                    getTreeFromPos(curP);
-                    curP.y += chunkSize;
-                }
-            }
-            updateNeighbours(playerC);
-            // update neighbours of chunks in spiral
-            for (int r = 1; r <= preloadDistance; r++) {
-                int tileR = chunkSize * r;
-                Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
-                Chunk curC = getTreeFromPos(startP);
-                int d = r * 2;
-                for (int i = 0; i < d; i++) {
-                    updateNeighbours(curC);
-                    curC = curC.neighbours[3];
-                }
-                for (int i = 0; i < d; i++) {
-                    updateNeighbours(curC);
-                    curC = curC.neighbours[5];
-                }
-                for (int i = 0; i < d; i++) {
-                    updateNeighbours(curC);
-                    curC = curC.neighbours[7];
-                }
-                for (int i = 0; i < d; i++) {
-                    updateNeighbours(curC);
-                    curC = curC.neighbours[1];
-                }
-            }
-            setTreeTempLevel(playerC);
-            return;
-        }*/
         // make sure chunks exist in quadtree in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
@@ -389,6 +335,7 @@ public class Main : MonoBehaviour
             }
         }
         setPos(playerC);
+        // set pos coords of chunks in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
             Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
@@ -412,41 +359,30 @@ public class Main : MonoBehaviour
             }
         }
         setTreeTempLevel(playerC);
-        /*foreach (Chunk c in playerC.neighbours) {
-            setTreeTempLevel(c);
-        }*/
         // set chunk temp levels in spiral
         for (int r = 1; r <= preloadDistance; r++) {
-            setTempLevelWithRadius(r);
-        }
-        // make temp final
-        for (int r = 1; r <= 1; r++) {
             int tileR = chunkSize * r;
             Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
             Chunk curC = getTreeFromPos(startP);
             int d = r * 2;
             for (int i = 0; i < d; i++) {
-                curC.tempIsFinal = true;
+                setTreeTempLevel(curC);
                 curC = curC.neighbours[3];
             }
             for (int i = 0; i < d; i++) {
-                curC.tempIsFinal = true;
+                setTreeTempLevel(curC);
                 curC = curC.neighbours[5];
             }
             for (int i = 0; i < d; i++) {
-                curC.tempIsFinal = true;
+                setTreeTempLevel(curC);
                 curC = curC.neighbours[7];
             }
             for (int i = 0; i < d; i++) {
-                curC.tempIsFinal = true;
+                setTreeTempLevel(curC);
                 curC = curC.neighbours[1];
             }
         }
 
-        updatePartiallyLoadedSides(playerC);        // theoretically
-        foreach (Chunk c in playerC.neighbours) {   //   unneeded
-            updatePartiallyLoadedSides(c);
-        }
         // (graphically) load chunks
         loadChunkAtTree(playerC);
         foreach (Chunk c in playerC.neighbours) {
@@ -459,142 +395,6 @@ public class Main : MonoBehaviour
             c.pos = new Vector2Int((int)c.area.center.x / chunkSize,(int)c.area.center.y / chunkSize);
             c.hasPos = true;
         }
-    }
-
-    void setTempLevelWithRadius(int r) {
-        int tileR = chunkSize * r;
-            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
-            Chunk curC = getTreeFromPos(startP);
-            int d = r * 2;
-            for (int i = 0; i < d; i++) {
-                if (!setTreeTempLevel(curC)) {
-                    fixChunkTemp(curC);
-                    unsetNeighboursTemp(curC);
-                    setTempLevelWithRadius(r-1);
-                    setTempLevelWithRadius(r);
-                    return;
-                }
-                curC = curC.neighbours[3];
-            }
-            for (int i = 0; i < d; i++) {
-                if (!setTreeTempLevel(curC)) {
-                    fixChunkTemp(curC);
-                    unsetNeighboursTemp(curC);
-                    setTempLevelWithRadius(r-1);
-                    setTempLevelWithRadius(r);
-                    return;
-                }
-                curC = curC.neighbours[5];
-            }
-            for (int i = 0; i < d; i++) {
-                if (!setTreeTempLevel(curC)) {
-                    fixChunkTemp(curC);
-                    unsetNeighboursTemp(curC);
-                    setTempLevelWithRadius(r-1);
-                    setTempLevelWithRadius(r);
-                    return;
-                }
-                curC = curC.neighbours[7];
-            }
-            for (int i = 0; i < d; i++) {
-                if (!setTreeTempLevel(curC)) {
-                    fixChunkTemp(curC);
-                    unsetNeighboursTemp(curC);
-                    setTempLevelWithRadius(r-1);
-                    setTempLevelWithRadius(r);
-                    return;
-                }
-                curC = curC.neighbours[1];
-            }
-    }
-
-    void fixChunkTemp(Chunk c) {
-        //setTreeTempLevel(curC);
-        int sT = findNeighbourFinalTemp(c);
-        if (sT != -99) { // final temp in neighbours
-            Debug.Log("found set neighbour temp");
-            DrawX(c.area.min,c.area.max,Color.magenta,999);
-            if (sT == Chunk.magicBiomeTemp || sT == 0) {
-                setTemp(c,0);
-            } else if (sT > 0) {
-                setTemp(c,sT-1);
-            } else if (sT < 0) {
-                setTemp(c,sT+1);
-            } else {
-                Debug.Log("e: invalid temp, path to else shouldnt be possible (fixChunkTemp in Main)");
-            }
-        } else { //no final temp in neighbours
-            Debug.Log("couldnt find set neighbour temp");
-            sT = findNextFinalTemp(c);
-            float pT = getAverageNeighbourPresetTemp(c);
-            if ((float)sT > pT) {
-                if (sT > Chunk.minTempLevel) {
-                    setTemp(c,sT-1);
-                } else {
-                    setTemp(c,sT);
-                }
-            } else if ((float)sT < pT) {
-                if (sT < Chunk.maxTempLevel) {
-                    setTemp(c,sT+1);
-                } else {
-                    setTemp(c,sT);
-                }
-            } else {
-                setTemp(c,sT);
-            }
-        }
-    }
-
-    int findNeighbourFinalTemp(Chunk c) {
-        bool r = false;
-        int t = Chunk.minTempLevel;
-        foreach (Chunk n in c.neighbours) {
-            if (n.tempIsFinal) {
-                if (!r) r = true;
-                if (Math.Abs(n.tempLevel) <= Math.Abs(t)) t = n.tempLevel;
-            }
-        }
-        if (r) return t;
-        return -99;
-    }
-
-    int findNextFinalTemp(Chunk c) {
-        for (int r = 1; r <= preloadDistance; r++) {
-            int tileR = chunkSize * r;
-            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
-            Chunk curC = getTreeFromPos(startP);
-            int d = r * 2;
-            for (int i = 0; i < d; i++) {
-                if (curC.tempIsFinal) return curC.tempLevel;
-                curC = curC.neighbours[3];
-            }
-            for (int i = 0; i < d; i++) {
-                if (curC.tempIsFinal) return curC.tempLevel;
-                curC = curC.neighbours[5];
-            }
-            for (int i = 0; i < d; i++) {
-                if (curC.tempIsFinal) return curC.tempLevel;
-                curC = curC.neighbours[7];
-            }
-            for (int i = 0; i < d; i++) {
-                if (curC.tempIsFinal) return curC.tempLevel;
-                curC = curC.neighbours[1];
-            }
-        }
-        Debug.Log("e: no set temp found in preload distance (findNextSetTemp in Main)");
-        return -99;
-    }
-
-    float getAverageNeighbourPresetTemp(Chunk c) {
-        int ts = 0;
-        int num = 0;
-        foreach (Chunk n in c.neighbours) {
-            if (n.hasTemp) {
-                ts += n.tempLevel;
-                num++;
-            }
-        }
-        return ((float)ts) / ((float)num);
     }
 
     void unsetNeighboursTemp(Chunk c) {
@@ -814,136 +614,21 @@ public class Main : MonoBehaviour
     }
 
     bool setTreeTempLevel(Chunk c) {
-        //updateNeighbours(c);
         if (c.hasTemp) return true;
 
-        if (usePerlinNoiseForMapGen) {
-            float x = (((float)c.pos.x)/10f)+seed.x;
-            float y = (((float)c.pos.y)/10f)+seed.y;
-            //Debug.Log(c.hasPos);
-            float noise = Mathf.PerlinNoise(x,y);
-            //Debug.Log(noise);
-            float d = 1f/Chunk.numTempLevels;
-            for (int i = 1; i <= Chunk.numTempLevels; i++) {
-                if (noise < i*d) {
-                    setTempByIndex(c,i);
-                    return true;
-                }
-            }
-            setTemp(c,Chunk.maxTempLevel);
-            return true;
-        }
-
-        List<int> temps = new List<int>();
-        int num = 0;
-        foreach (Chunk n in c.neighbours) {
-            if (n != null && n.hasTemp && n.tempLevel != Chunk.magicBiomeTemp && !temps.Contains(n.tempLevel)) {
-                temps.Add(n.tempLevel);
-                num++;
+        float x = (((float)c.pos.x)/10f)+seed.x;
+        float y = (((float)c.pos.y)/10f)+seed.y;
+        float noise = Mathf.PerlinNoise(x,y);
+        float d = 1f/Chunk.numTempLevels;
+        for (int i = 1; i <= Chunk.numTempLevels; i++) {
+            if (noise < i*d) {
+                setTempByIndex(c,i);
+                return true;
             }
         }
-        int offset = c.parent.tempOffset;
-        /*if (UnityEngine.Random.value < 0) {
-            c.tempLevel = Chunk.magicBiomeTemp;
-            c.tempIndex = 0;
-            c.hasTemp = true;
-            return true;
-        }*/
-        if (num == 0) {
-            c.tempLevel = offset;
-        } else if (num == 1) {
-            c.tempLevel = temps[0] + offset;
-            if (c.tempLevel > Chunk.maxTempLevel) {
-                c.tempLevel = Chunk.maxTempLevel;
-            } else if (c.tempLevel < Chunk.minTempLevel) {
-                c.tempLevel = Chunk.minTempLevel;
-            }
-        } else if (num == 2) {
-            int maxT = Mathf.Max(temps[0],temps[1]);
-            int minT = Mathf.Min(temps[0],temps[1]);
-            if (maxT - minT < 2) {
-                if (offset == 1) {
-                    c.tempLevel = maxT;
-                } else if (offset == -1) {
-                    c.tempLevel = minT;
-                } else {
-                    c.tempLevel = temps[UnityEngine.Random.Range(0,2)];
-                }
-            } else {
-                c.tempLevel = (maxT+minT)/2;
-            }
-        } else {
-            int maxT = Mathf.Max(temps.ToArray());
-            int minT = Mathf.Min(temps.ToArray());
-            if (maxT - minT < 3) {
-                c.tempLevel = (maxT+minT)/2;
-            } else {
-                return false;
-            }
-        }
-        int tI = c.tempLevel + Chunk.maxTempLevel + 1;
-        if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
-        c.tempIndex = tI;
-        c.hasTemp = true;
+        setTemp(c,Chunk.maxTempLevel);
         return true;
     }
-
-    /*bool setTreePreTempLevel(Chunk c) {
-        //updateNeighbours(c);
-        if (c.hasTemp) return true;
-        List<int> temps = new List<int>();
-        int num = 0;
-        foreach (Chunk n in c.neighbours) {
-            if (n != null && n.preTemp && n.tempLevel != Chunk.magicBiomeTemp && !temps.Contains(n.tempLevel)) {
-                temps.Add(n.tempLevel);
-                num++;
-            }
-        }
-        int offset = c.parent.tempOffset;
-        if (UnityEngine.Random.value < 0) {
-            c.tempLevel = Chunk.magicBiomeTemp;
-            c.tempIndex = 0;
-            c.preTemp = true;
-            return true;
-        }
-        if (num == 0) {
-            c.tempLevel = offset;
-        } else if (num == 1) {
-            c.tempLevel = temps[0] + offset;
-            if (c.tempLevel > Chunk.maxTempLevel) {
-                c.tempLevel = Chunk.maxTempLevel;
-            } else if (c.tempLevel < Chunk.minTempLevel) {
-                c.tempLevel = Chunk.minTempLevel;
-            }
-        } else if (num == 2) {
-            int maxT = Mathf.Max(temps[0],temps[1]);
-            int minT = Mathf.Min(temps[0],temps[1]);
-            if (maxT - minT < 2) {
-                if (offset == 1) {
-                    c.tempLevel = maxT;
-                } else if (offset == -1) {
-                    c.tempLevel = minT;
-                } else {
-                    c.tempLevel = temps[UnityEngine.Random.Range(0,2)];
-                }
-            } else {
-                c.tempLevel = (maxT+minT)/2;
-            }
-        } else {
-            int maxT = Mathf.Max(temps.ToArray());
-            int minT = Mathf.Min(temps.ToArray());
-            if (maxT - minT < 3) {
-                c.tempLevel = (maxT+minT)/2;
-            } else {
-                return false;
-            }
-        }
-        int tI = c.tempLevel + Chunk.maxTempLevel + 1;
-        if (c.tempLevel == Chunk.magicBiomeTemp) tI = 0;
-        c.tempIndex = tI;
-        c.preTemp = true;
-        return true;
-    }*/
 
     void setTemp(Chunk c, int t) {
         c.tempLevel = t;
@@ -1650,7 +1335,7 @@ public class Main : MonoBehaviour
         if (!c.partiallyLoaded) return;
         for (int i = 0; i < 4; i++) {
             Chunk n = c.neighbours[(2*i)+1];
-            if (c.unloadedSides[i] && n != null && n.tempIsFinal) {
+            if (c.unloadedSides[i] && n != null && n.hasTemp) {
                 loadTilesAtSide(c,i);
                 c.unloadedSides[i] = false;
                 c.checkDoneLoading();
