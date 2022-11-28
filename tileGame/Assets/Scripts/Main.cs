@@ -13,8 +13,6 @@ TODO:
 
 -- remake player animation
 
--- change order of temp loading to fix magic biome problem
-
 -- add semi chunks that can be multiple biomes
 
 -- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps for performance
@@ -38,7 +36,6 @@ public class Main : MonoBehaviour
     public static Tile[] debugTiles;
     public Quadtree topTree;
 
-    public static bool usePerlinNoiseForMapGen = true;
     public Vector2 seed;
 
     public static int chunkSize = 30; //length of one side -> should be even
@@ -46,7 +43,7 @@ public class Main : MonoBehaviour
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
     public static int borderSize = 10; // interpolation border (where biomes mix)
     static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 <= x <= chunkSize/2 (clamped for x >= 8)
-    public static int preloadDistance = (Chunk.numTempLevels / 2) + 1;
+    public static int preloadDistance = 3;
     public Queue<Loadable> toLoad;
 
     public GameObject player;
@@ -63,7 +60,7 @@ public class Main : MonoBehaviour
 
     public static GameObject[] debugChunkSquares;
 
-    public bool autoWalk = true;
+    public bool autoWalk = false;
     public int autoWalkCounter = 0;
     public int autoWalkDir = 0;
     public int autoWalkLength = 30;
@@ -174,8 +171,8 @@ public class Main : MonoBehaviour
                 if (debug_drawTrees) drawAllTrees();
                 if (debug_drawTempColors) drawTempColors();
                 if (debug_drawTempOffsets) drawTempOffsets();
+                lastTree = getTreeFromPos(player.transform.position);
             }
-            if (newChunk) lastTree = getTreeFromPos(player.transform.position);
         }
         
         updateSortingOrder();
@@ -646,7 +643,6 @@ public class Main : MonoBehaviour
             c.tempLevel = Chunk.magicBiomeTemp;
         } else {
             c.tempLevel = t - Chunk.maxTempLevel - 1;
-            //Debug.Log(c.tempLevel);
         }
         c.hasTemp = true;
     }
