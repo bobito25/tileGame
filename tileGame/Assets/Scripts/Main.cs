@@ -37,13 +37,15 @@ public class Main : MonoBehaviour
     public Quadtree topTree;
 
     public Vector2 seed;
+    public static float scale = 20f; // higher -> less movement in perlin noise -> bigger temp zones
 
-    public static int chunkSize = 30; //length of one side -> should be even
+    public static int chunkSize = 16; //length of one side -> should be even
     public static int quadtreeMaxLevel = 1; // starts at one
     public static int quadtreeSideLength = chunkSize * (int)Mathf.Pow(2,quadtreeMaxLevel-1);
-    public static int borderSize = 10; // interpolation border (where biomes mix)
+    public static int borderSize = 4; // interpolation border (where biomes mix)
     static float[] preCalcedFuncVals; // y = 0.5 * e^(-x) for 0 <= x <= chunkSize/2 (clamped for x >= 8)
-    public static int preloadDistance = 3;
+    public static int loadDistance = 3;
+    public static int preloadDistance = loadDistance+1;
     public Queue<Loadable> toLoad;
 
     public GameObject player;
@@ -78,7 +80,9 @@ public class Main : MonoBehaviour
         Grid grid = g_map.AddComponent<Grid>() as Grid;
         TilemapRenderer tr = g_map.AddComponent<TilemapRenderer>() as TilemapRenderer;
         tr.sortingLayerID = SortingLayer.NameToID("mapLayer");
-        seed = new Vector2(UnityEngine.Random.value,UnityEngine.Random.value);
+
+        seed = new Vector2(UnityEngine.Random.value*UnityEngine.Random.Range(1,10000),UnityEngine.Random.value*UnityEngine.Random.Range(1,10000));
+
         initTiles();
         initTrees();
         initEntities();
@@ -86,7 +90,7 @@ public class Main : MonoBehaviour
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
 
-        obstaclesPerTile = 100;
+        obstaclesPerTile = 10;
         obstaclesPerTemp = new int[] {0,0,obstaclesPerTile/3,obstaclesPerTile,obstaclesPerTile/3,obstaclesPerTile/10};
 
         time = 0;
@@ -382,8 +386,27 @@ public class Main : MonoBehaviour
 
         // (graphically) load chunks
         loadChunkAtTree(playerC);
-        foreach (Chunk c in playerC.neighbours) {
-            loadChunkAtTree(c);
+        for (int r = 1; r <= loadDistance; r++) {
+            int tileR = chunkSize * r;
+            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
+            Chunk curC = getTreeFromPos(startP);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                loadChunkAtTree(curC);
+                curC = curC.neighbours[3];
+            }
+            for (int i = 0; i < d; i++) {
+                loadChunkAtTree(curC);
+                curC = curC.neighbours[5];
+            }
+            for (int i = 0; i < d; i++) {
+                loadChunkAtTree(curC);
+                curC = curC.neighbours[7];
+            }
+            for (int i = 0; i < d; i++) {
+                loadChunkAtTree(curC);
+                curC = curC.neighbours[1];
+            }
         }
     }
 
@@ -401,22 +424,46 @@ public class Main : MonoBehaviour
     }
 
     void unloadChunksAroundPlayerPos() {
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,0,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize*2,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,0,0)));
-        unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize,0)));
+        if (loadDistance == 1) {
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,chunkSize,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,0,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize*2,-chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(chunkSize,-chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(0,-chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize,-chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize*2,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,-chunkSize,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,0,0)));
+            unloadChunkAtTree(getTreeFromPos(player.transform.position + new Vector3(-chunkSize*2,chunkSize,0)));
+        } else {
+            int r = loadDistance + 1;
+            int tileR = chunkSize * r;
+            Vector3 startP = player.transform.position + new Vector3(-tileR,tileR,0);
+            Chunk curC = getTreeFromPos(startP);
+            int d = r * 2;
+            for (int i = 0; i < d; i++) {
+                unloadChunkAtTree(curC);
+                curC = curC.neighbours[3];
+            }
+            for (int i = 0; i < d; i++) {
+                unloadChunkAtTree(curC);
+                curC = curC.neighbours[5];
+            }
+            for (int i = 0; i < d; i++) {
+                unloadChunkAtTree(curC);
+                curC = curC.neighbours[7];
+            }
+            for (int i = 0; i < d; i++) {
+                unloadChunkAtTree(curC);
+                curC = curC.neighbours[1];
+            }
+        }
     }
 
     void unloadChunkAtTree(Chunk q) {
@@ -613,8 +660,8 @@ public class Main : MonoBehaviour
     bool setTreeTempLevel(Chunk c) {
         if (c.hasTemp) return true;
 
-        float x = (((float)c.pos.x)/10f)+seed.x;
-        float y = (((float)c.pos.y)/10f)+seed.y;
+        float x = (((float)c.pos.x)/scale)+seed.x;
+        float y = (((float)c.pos.y)/scale)+seed.y;
         float noise = Mathf.PerlinNoise(x,y);
         float d = 1f/Chunk.numTempLevels;
         for (int i = 1; i <= Chunk.numTempLevels; i++) {
@@ -1318,11 +1365,12 @@ public class Main : MonoBehaviour
     }
 
     void initPreCalcedFuncVals() {
-        preCalcedFuncVals = new float[chunkSize/2];
+        int arrLength = Math.Max(borderSize,8);
+        preCalcedFuncVals = new float[arrLength];
         for (int i = 0; i < 8; i++) {
             preCalcedFuncVals[i] = 0.5f * (Mathf.Exp(-(float)i));
         }
-        for (int i = 8; i < chunkSize/2; i++) {
+        for (int i = 8; i < arrLength; i++) {
             preCalcedFuncVals[i] = 0;
         }
     }
