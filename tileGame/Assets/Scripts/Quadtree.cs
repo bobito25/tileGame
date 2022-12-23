@@ -15,7 +15,7 @@ public class Quadtree
     public int level;
     public bool empty;
 
-    public int tempOffset; // -1,0,1
+    public int humidity; // -1,0,1
 
     public Quadtree(Quadtree p, BoundsInt a) {
         parent = p;
@@ -33,8 +33,15 @@ public class Quadtree
         if (this.level > 1) {
             if (this.empty) {
                 this.split();
-                foreach (Quadtree c in children) {
-                    c.tempOffset = Main.weightedRandOffset(tempOffset);
+                
+                if (this.level > Biome.humidityLevel) {
+                    foreach (Quadtree c in children) {
+                        c.humidity = Main.weightedRandOffset(humidity);
+                    }
+                } else {
+                    foreach (Quadtree c in children) {
+                        c.humidity = this.humidity;
+                    }
                 }
             }
             foreach (Quadtree q in children) {
@@ -44,9 +51,8 @@ public class Quadtree
             }
             Debug.Log("e: pos not in children (getChunkFromPos in Quadtree)");
             return null;
-        } else {
-            return this;
         }
+        return this;
     }
 
     public Quadtree getTreeFromPosIfExists(Vector3Int p) {
@@ -127,21 +133,21 @@ public class Quadtree
         }
     }
 
-    public void drawTempOffsets() {
+    public void drawHumidity() {
         if (level == 2) {
-            drawOffset();
+            drawH();
         } else if (level > 2 && !empty) {
             foreach (Quadtree c in children) {
-                c.drawTempOffsets();
+                c.drawHumidity();
             }
         }
     }
 
-    void drawOffset() {
+    void drawH() {
         Color c = new Color(0,0,0,1);
-        if (tempOffset == -1) {
+        if (humidity == -1) {
             c = Color.blue;
-        } else if (tempOffset == 0) {
+        } else if (humidity == 0) {
             c = Color.green;
         } else {
             c = Color.red;

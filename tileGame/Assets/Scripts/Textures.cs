@@ -6,7 +6,14 @@ using System.IO;
 
 public class Textures
 {
+    public static int numTileGroups = Chunk.numTempLevels+1;
+    public static int numTilesPerGroup = 5;
     public Texture2D[,] tileTextures;
+
+    public static int numTotalObstacles = 2;
+    public Texture2D[] obstacleTextures;
+
+    public Texture2D playerTexture;
 
     public Textures() {
         initTileTs();
@@ -15,9 +22,6 @@ public class Textures
     }
 
     private void initTileTs() {
-        int numTileGroups = Chunk.numTempLevels+1;
-        int numTilesPerGroup = 5;
-
         tileTextures = new Texture2D[numTileGroups,numTilesPerGroup];
 
         byte[][] grassTBytes = 
@@ -94,10 +98,26 @@ public class Textures
     }
 
     private void initObstacleTs() {
+        obstacleTextures = new Texture2D[numTotalObstacles];
 
+        byte[][] obstacleTBytes = {
+            File.ReadAllBytes("Assets/Entities/pineTree2_x20.png"),
+            File.ReadAllBytes("Assets/Entities/tree3_x20_f.png")
+        };
+
+        obstacleTextures[0] = new Texture2D(20,40);
+        obstacleTextures[1] = new Texture2D(20,40);
+
+        for (int i = 0; i < numTotalObstacles; i++) {
+            obstacleTextures[i].LoadImage(obstacleTBytes[i]);
+            obstacleTextures[i].filterMode = FilterMode.Point;
+        }
     }
 
     private void initPlayerT() {
-
+        byte[] playerTBytes = File.ReadAllBytes("Assets/Entities/player1.png");
+        playerTexture = new Texture2D(10,10);
+        playerTexture.LoadImage(playerTBytes);
+        playerTexture.filterMode = FilterMode.Point;
     }
 }

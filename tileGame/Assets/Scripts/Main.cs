@@ -9,7 +9,7 @@ using System;
 
 TODO:
 
--- implement biomes / humidity?
+-- change humidity to fit more than two biomes per temp
 
 -- remake character
 
@@ -38,6 +38,8 @@ public class Main : MonoBehaviour
     public static Tile[] debugTiles;
     public Quadtree topTree;
 
+    Textures textures;
+
     public Vector2 seed;
     public static float scale = 20f; // higher -> less movement in perlin noise -> bigger temp zones
 
@@ -56,9 +58,8 @@ public class Main : MonoBehaviour
     Vector3 nextMove;
     Quadtree lastTree;
 
-    public static GameObject[] obstacles;
-    public int obstaclesPerTile;
-    public int[] obstaclesPerTemp; // uses temp index
+    public static GameObject[] obstacles; // first obstacles that are cloned
+    public static int obstaclesPerTile = chunkSize;
 
     public static int time;
 
@@ -71,7 +72,7 @@ public class Main : MonoBehaviour
 
     public bool debug_drawTrees = false;
     public bool debug_drawTempColors = false;
-    public bool debug_drawTempOffsets = false;
+    public bool debug_drawHumidity = false;
 
 
     // Start is called before the first frame update
@@ -85,15 +86,16 @@ public class Main : MonoBehaviour
 
         seed = new Vector2(UnityEngine.Random.value*UnityEngine.Random.Range(1,100000),UnityEngine.Random.value*UnityEngine.Random.Range(1,100000));
 
+        textures = new Textures();
+
         initTiles();
         initTrees();
         initEntities();
         initPreCalcedFuncVals();
+        Biome.initBiomes();
+
         nextMove = new Vector3(0,0,0);
         playerSpeed = 10;
-
-        obstaclesPerTile = 10;
-        obstaclesPerTemp = new int[] {0,0,obstaclesPerTile/3,obstaclesPerTile,obstaclesPerTile/3,obstaclesPerTile/10};
 
         time = 0;
 
@@ -108,7 +110,7 @@ public class Main : MonoBehaviour
         initDebugChunkSquares();
         if (debug_drawTrees) drawAllTrees();
         if (debug_drawTempColors) drawTempColors();
-        if (debug_drawTempOffsets) drawTempOffsets();
+        if (debug_drawHumidity) drawHumidity();
         //Debug.DrawLine(new Vector3(0,0,0), new Vector3(1,1,0), Color.red, 100000000, false);
 
         //TileBase[] allTiles = map.GetTilesBlock(map.cellBounds);
@@ -176,7 +178,7 @@ public class Main : MonoBehaviour
                 unloadChunksAroundPlayerPos();
                 if (debug_drawTrees) drawAllTrees();
                 if (debug_drawTempColors) drawTempColors();
-                if (debug_drawTempOffsets) drawTempOffsets();
+                if (debug_drawHumidity) drawHumidity();
                 lastTree = getTreeFromPos(player.transform.position);
             }
         }
@@ -201,11 +203,7 @@ public class Main : MonoBehaviour
     }
 
     void initTreeObs() {
-        byte[] b_tree1 = File.ReadAllBytes("Assets/Entities/pineTree2_x20.png");
-        Texture2D t_tree1 = new Texture2D(20,40);
-        t_tree1.LoadImage(b_tree1);
-        t_tree1.filterMode = FilterMode.Point;
-        Sprite s_tree1 = Sprite.Create(t_tree1, new Rect(0,0,t_tree1.width,t_tree1.height),new Vector2(0f, 0f),20);
+        Sprite s_tree1 = Sprite.Create(textures.obstacleTextures[0], new Rect(0,0,textures.obstacleTextures[0].width,textures.obstacleTextures[0].height),new Vector2(0f, 0f),20);
         GameObject firstTree1 = new GameObject("tree");
         firstTree1.layer = 10;
         firstTree1.SetActive(false);
@@ -215,11 +213,7 @@ public class Main : MonoBehaviour
         collider1.size = new Vector2(1,1);
         obstacles[0] = firstTree1;
 
-        byte[] b_tree1_f = File.ReadAllBytes("Assets/Entities/tree3_x20_f.png");
-        Texture2D t_tree1_f = new Texture2D(20,40);
-        t_tree1_f.LoadImage(b_tree1_f);
-        t_tree1_f.filterMode = FilterMode.Point;
-        Sprite s_tree1_f = Sprite.Create(t_tree1_f, new Rect(0,0,t_tree1_f.width,t_tree1_f.height),new Vector2(0f, 0f),20);
+        Sprite s_tree1_f = Sprite.Create(textures.obstacleTextures[1], new Rect(0,0,textures.obstacleTextures[1].width,textures.obstacleTextures[1].height),new Vector2(0f, 0f),20);
         GameObject firstTree1_f = new GameObject("tree");
         firstTree1_f.layer = 10;
         firstTree1_f.SetActive(false);
@@ -362,6 +356,7 @@ public class Main : MonoBehaviour
             }
         }
         setTreeTempLevel(playerC);
+        setBiome(playerC);
         // set chunk temp levels in spiral
         for (int r = 1; r <= preloadDistance; r++) {
             int tileR = chunkSize * r;
@@ -370,22 +365,22 @@ public class Main : MonoBehaviour
             int d = r * 2;
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
-                setRandomBiome(curC);
+                setBiome(curC);
                 curC = curC.neighbours[3];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
-                setRandomBiome(curC);
+                setBiome(curC);
                 curC = curC.neighbours[5];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
-                setRandomBiome(curC);
+                setBiome(curC);
                 curC = curC.neighbours[7];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
-                setRandomBiome(curC);
+                setBiome(curC);
                 curC = curC.neighbours[1];
             }
         }
@@ -500,19 +495,20 @@ public class Main : MonoBehaviour
     void placeObstacles(Chunk q) {
         BoundsInt area = q.area;
         List<Obstacle> os = new List<Obstacle>();
-        for (int i = 0; i < obstaclesPerTemp[q.tempIndex]; i++) {
-            placeObstacle(area,os,3);
+        for (int i = 0; i < Biome.obstacleNumPerBiomePerTemp[q.tempIndex-1][q.biome.biomeNum]; i++) {
+            placeObstacle(q,os,3);
         }
         q.setObstacles(os);
     }
 
-    void placeObstacle(BoundsInt area, List<Obstacle> os, int tryNum) {
+    void placeObstacle(Chunk c, List<Obstacle> os, int tryNum) {
         if (tryNum == 0) return;
+        BoundsInt area = c.area;
         Vector2Int pos = new Vector2Int(UnityEngine.Random.Range(area.x,area.xMax),UnityEngine.Random.Range(area.y,area.yMax));
         if (checkFree(pos, os)) {
-            os.Add(spawnObstacleAt(pos,UnityEngine.Random.Range(0,obstacles.Length)));
+            os.Add(spawnObstacleAt(pos,c.biome.getRandomPossibleObstacleIndex()));
         } else {
-            placeObstacle(area,os,tryNum-1);
+            placeObstacle(c,os,tryNum-1);
         }
     }
 
@@ -595,13 +591,13 @@ public class Main : MonoBehaviour
                 foreach (Quadtree q in topTree.children) {
                     q.parent = topTree;
                 }
-                if (old.level > 1) {
-                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
-                    setTopTreeTempOffset();
+                if (old.level > Biome.humidityLevel) {
+                    topTree.children[0].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[1].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[3].humidity = weightedRandOffset(old.humidity);
+                    setTopTreeHumidity();
                 } else {
-                    topTree.tempOffset = 0;
+                    topTree.humidity = 0;
                 }
             } else {
                 //top right of new
@@ -613,13 +609,13 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[1] = old;
-                if (old.level > 1) {
-                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
-                    setTopTreeTempOffset();
+                if (old.level > Biome.humidityLevel) {
+                    topTree.children[0].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[2].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[3].humidity = weightedRandOffset(old.humidity);
+                    setTopTreeHumidity();
                 } else {
-                    topTree.tempOffset = 0;
+                    topTree.humidity = 0;
                 }
             }
         } else {
@@ -633,13 +629,13 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[3] = old;
-                if (old.level > 1) {
-                    topTree.children[0].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
-                    setTopTreeTempOffset();
+                if (old.level > Biome.humidityLevel) {
+                    topTree.children[0].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[1].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[2].humidity = weightedRandOffset(old.humidity);
+                    setTopTreeHumidity();
                 } else {
-                    topTree.tempOffset = 0;
+                    topTree.humidity = 0;
                 }
             } else {
                 //top left of new
@@ -651,13 +647,13 @@ public class Main : MonoBehaviour
                 topTree.level = old.level + 1;
                 topTree.split();
                 topTree.children[0] = old;
-                if (old.level > 1) {
-                    topTree.children[2].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[1].tempOffset = weightedRandOffset(old.tempOffset);
-                    topTree.children[3].tempOffset = weightedRandOffset(old.tempOffset);
-                    setTopTreeTempOffset();
+                if (old.level > Biome.humidityLevel) {
+                    topTree.children[2].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[1].humidity = weightedRandOffset(old.humidity);
+                    topTree.children[3].humidity = weightedRandOffset(old.humidity);
+                    setTopTreeHumidity();
                 } else {
-                    topTree.tempOffset = 0;
+                    topTree.humidity = 0;
                 }
             }
         }
@@ -704,6 +700,20 @@ public class Main : MonoBehaviour
         c.biome = new Biome(c.tempIndex,UnityEngine.Random.Range(0,Biome.numBiomesPerTemp[c.tempIndex-1]));
     }
 
+    void setBiome(Chunk c) {
+        if (c.humidity == -1) {
+            c.biome = new Biome(c.tempIndex,0);
+        } else if (c.humidity == 1) {
+            c.biome = new Biome(c.tempIndex,1);
+        } else {
+            if (UnityEngine.Random.value < 0.5f) {
+                c.biome = new Biome(c.tempIndex,0);
+            } else {
+                c.biome = new Biome(c.tempIndex,1);
+            }
+        }
+    }
+
     void updateNeighbours(Chunk c) {
         Vector3Int center = new Vector3Int((int)c.area.center.x,(int)c.area.center.y,0);
         if (c.neighbours[0] == null) c.neighbours[0] = getTreeFromPosIfExists(center + new Vector3Int(-chunkSize,chunkSize,0));
@@ -716,15 +726,15 @@ public class Main : MonoBehaviour
         if (c.neighbours[7] == null) c.neighbours[7] = getTreeFromPosIfExists(center + new Vector3Int(-chunkSize,0,0));
     }
 
-    void setTopTreeTempOffset() {
+    void setTopTreeHumidity() {
         int t = 0;
-        foreach (Quadtree c in topTree.children) t += c.tempOffset;
+        foreach (Quadtree c in topTree.children) t += c.humidity;
         if (t > 0) {
-            topTree.tempOffset = 1;
+            topTree.humidity = 1;
         } else if (t < 0) {
-            topTree.tempOffset = -1;
+            topTree.humidity = -1;
         } else {
-            topTree.tempOffset = 0;
+            topTree.humidity = 0;
         }
     }
 
@@ -734,11 +744,7 @@ public class Main : MonoBehaviour
     }
 
     void initPlayer() {
-        byte[] b_player = File.ReadAllBytes("Assets/Entities/player1.png");
-        Texture2D t_player = new Texture2D(10,10);
-        t_player.LoadImage(b_player);
-        t_player.filterMode = FilterMode.Point;
-        Sprite s_player = Sprite.Create(t_player, new Rect(0,0,t_player.width,t_player.height),new Vector2(0.5f, 0.5f),10);
+        Sprite s_player = Sprite.Create(textures.playerTexture, new Rect(0,0,textures.playerTexture.width,textures.playerTexture.height),new Vector2(0.5f, 0.5f),10);
         player = GameObject.Find("player");
         SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
         //sr.sprite = s_player;
@@ -752,269 +758,21 @@ public class Main : MonoBehaviour
     }
 
     void initTiles() {
-        tiles = new Tile[Chunk.numTempLevels+1,5];
+        tiles = new Tile[Textures.numTileGroups,Textures.numTilesPerGroup];
 
-        byte[] b_g1 = File.ReadAllBytes("Assets/Tiles/grass1_x20.png");
-        byte[] b_g2 = File.ReadAllBytes("Assets/Tiles/grass2_x20.png");
-        byte[] b_g3 = File.ReadAllBytes("Assets/Tiles/grass3_x20.png");
-        byte[] b_g4 = File.ReadAllBytes("Assets/Tiles/grass4_x20.png");
-        byte[] b_g5 = File.ReadAllBytes("Assets/Tiles/grass5_x20.png");
-
-        byte[] b_m1 = File.ReadAllBytes("Assets/Tiles/magicBiome1_x20.png");
-        byte[] b_m2 = File.ReadAllBytes("Assets/Tiles/magicBiome2_x20.png");
-        byte[] b_m3 = File.ReadAllBytes("Assets/Tiles/magicBiome3_x20.png");
-        byte[] b_m4 = File.ReadAllBytes("Assets/Tiles/magicBiome4_x20.png");
-        byte[] b_m5 = File.ReadAllBytes("Assets/Tiles/magicBiome5_x20.png");
-
-        byte[] b_i1 = File.ReadAllBytes("Assets/Tiles/iceBiome1_x20.png");
-        byte[] b_i2 = File.ReadAllBytes("Assets/Tiles/iceBiome2_x20.png");
-        byte[] b_i3 = File.ReadAllBytes("Assets/Tiles/iceBiome3_x20.png");
-        byte[] b_i4 = File.ReadAllBytes("Assets/Tiles/iceBiome4_x20.png");
-        byte[] b_i5 = File.ReadAllBytes("Assets/Tiles/iceBiome5_x20.png");
-
-        byte[] b_t1 = File.ReadAllBytes("Assets/Tiles/tundraBiome1_x20.png");
-        byte[] b_t2 = File.ReadAllBytes("Assets/Tiles/tundraBiome2_x20.png");
-        byte[] b_t3 = File.ReadAllBytes("Assets/Tiles/tundraBiome3_x20.png");
-        byte[] b_t4 = File.ReadAllBytes("Assets/Tiles/tundraBiome4_x20.png");
-        byte[] b_t5 = File.ReadAllBytes("Assets/Tiles/tundraBiome5_x20.png");
-
-        byte[] b_s1 = File.ReadAllBytes("Assets/Tiles/savannaBiome1_x20.png");
-        byte[] b_s2 = File.ReadAllBytes("Assets/Tiles/savannaBiome2_x20.png");
-        byte[] b_s3 = File.ReadAllBytes("Assets/Tiles/savannaBiome3_x20.png");
-        byte[] b_s4 = File.ReadAllBytes("Assets/Tiles/savannaBiome4_x20.png");
-        byte[] b_s5 = File.ReadAllBytes("Assets/Tiles/savannaBiome5_x20.png");
-
-        byte[] b_d1 = File.ReadAllBytes("Assets/Tiles/desertBiome1_x20.png");
-        byte[] b_d2 = File.ReadAllBytes("Assets/Tiles/desertBiome2_x20.png");
-        byte[] b_d3 = File.ReadAllBytes("Assets/Tiles/desertBiome3_x20.png");
-        byte[] b_d4 = File.ReadAllBytes("Assets/Tiles/desertBiome4_x20.png");
-        byte[] b_d5 = File.ReadAllBytes("Assets/Tiles/desertBiome5_x20.png");
-
-        Texture2D t_g1 = new Texture2D(20,20);
-        Texture2D t_g2 = new Texture2D(20,20);
-        Texture2D t_g3 = new Texture2D(20,20);
-        Texture2D t_g4 = new Texture2D(20,20);
-        Texture2D t_g5 = new Texture2D(20,20);
-
-        Texture2D t_m1 = new Texture2D(20,20);
-        Texture2D t_m2 = new Texture2D(20,20);
-        Texture2D t_m3 = new Texture2D(20,20);
-        Texture2D t_m4 = new Texture2D(20,20);
-        Texture2D t_m5 = new Texture2D(20,20);
-
-        Texture2D t_i1 = new Texture2D(20,20);
-        Texture2D t_i2 = new Texture2D(20,20);
-        Texture2D t_i3 = new Texture2D(20,20);
-        Texture2D t_i4 = new Texture2D(20,20);
-        Texture2D t_i5 = new Texture2D(20,20);
+        Sprite[,] tileSprites = new Sprite[Textures.numTileGroups,Textures.numTilesPerGroup];
         
-        Texture2D t_t1 = new Texture2D(20,20);
-        Texture2D t_t2 = new Texture2D(20,20);
-        Texture2D t_t3 = new Texture2D(20,20);
-        Texture2D t_t4 = new Texture2D(20,20);
-        Texture2D t_t5 = new Texture2D(20,20);
-
-        Texture2D t_s1 = new Texture2D(20,20);
-        Texture2D t_s2 = new Texture2D(20,20);
-        Texture2D t_s3 = new Texture2D(20,20);
-        Texture2D t_s4 = new Texture2D(20,20);
-        Texture2D t_s5 = new Texture2D(20,20);
-
-        Texture2D t_d1 = new Texture2D(20,20);
-        Texture2D t_d2 = new Texture2D(20,20);
-        Texture2D t_d3 = new Texture2D(20,20);
-        Texture2D t_d4 = new Texture2D(20,20);
-        Texture2D t_d5 = new Texture2D(20,20);
-        
-        t_g1.LoadImage(b_g1);
-        t_g2.LoadImage(b_g2);
-        t_g3.LoadImage(b_g3);
-        t_g4.LoadImage(b_g4);
-        t_g5.LoadImage(b_g5);
-
-        t_m1.LoadImage(b_m1);
-        t_m2.LoadImage(b_m2);
-        t_m3.LoadImage(b_m3);
-        t_m4.LoadImage(b_m4);
-        t_m5.LoadImage(b_m5);
-
-        t_i1.LoadImage(b_i1);
-        t_i2.LoadImage(b_i2);
-        t_i3.LoadImage(b_i3);
-        t_i4.LoadImage(b_i4);
-        t_i5.LoadImage(b_i5);
-
-        t_t1.LoadImage(b_t1);
-        t_t2.LoadImage(b_t2);
-        t_t3.LoadImage(b_t3);
-        t_t4.LoadImage(b_t4);
-        t_t5.LoadImage(b_t5);
-
-        t_s1.LoadImage(b_s1);
-        t_s2.LoadImage(b_s2);
-        t_s3.LoadImage(b_s3);
-        t_s4.LoadImage(b_s4);
-        t_s5.LoadImage(b_s5);
-
-        t_d1.LoadImage(b_d1);
-        t_d2.LoadImage(b_d2);
-        t_d3.LoadImage(b_d3);
-        t_d4.LoadImage(b_d4);
-        t_d5.LoadImage(b_d5);
-
-        t_g1.filterMode = FilterMode.Point;
-        t_g2.filterMode = FilterMode.Point;
-        t_g3.filterMode = FilterMode.Point;
-        t_g4.filterMode = FilterMode.Point;
-        t_g5.filterMode = FilterMode.Point;
-
-        t_m1.filterMode = FilterMode.Point;
-        t_m2.filterMode = FilterMode.Point;
-        t_m3.filterMode = FilterMode.Point;
-        t_m4.filterMode = FilterMode.Point;
-        t_m5.filterMode = FilterMode.Point;
-
-        t_i1.filterMode = FilterMode.Point;
-        t_i2.filterMode = FilterMode.Point;
-        t_i3.filterMode = FilterMode.Point;
-        t_i4.filterMode = FilterMode.Point;
-        t_i5.filterMode = FilterMode.Point;
-
-        t_t1.filterMode = FilterMode.Point;
-        t_t2.filterMode = FilterMode.Point;
-        t_t3.filterMode = FilterMode.Point;
-        t_t4.filterMode = FilterMode.Point;
-        t_t5.filterMode = FilterMode.Point;
-
-        t_s1.filterMode = FilterMode.Point;
-        t_s2.filterMode = FilterMode.Point;
-        t_s3.filterMode = FilterMode.Point;
-        t_s4.filterMode = FilterMode.Point;
-        t_s5.filterMode = FilterMode.Point;
-
-        t_d1.filterMode = FilterMode.Point;
-        t_d2.filterMode = FilterMode.Point;
-        t_d3.filterMode = FilterMode.Point;
-        t_d4.filterMode = FilterMode.Point;
-        t_d5.filterMode = FilterMode.Point;
-
-        t_g1.wrapMode = TextureWrapMode.Clamp;
-        t_g2.wrapMode = TextureWrapMode.Clamp;
-        t_g3.wrapMode = TextureWrapMode.Clamp;
-        t_g4.wrapMode = TextureWrapMode.Clamp;
-        t_g5.wrapMode = TextureWrapMode.Clamp;
-
-        t_m1.wrapMode = TextureWrapMode.Clamp;
-        t_m2.wrapMode = TextureWrapMode.Clamp;
-        t_m3.wrapMode = TextureWrapMode.Clamp;
-        t_m4.wrapMode = TextureWrapMode.Clamp;
-        t_m5.wrapMode = TextureWrapMode.Clamp;
-
-        t_i1.wrapMode = TextureWrapMode.Clamp;
-        t_i2.wrapMode = TextureWrapMode.Clamp;
-        t_i3.wrapMode = TextureWrapMode.Clamp;
-        t_i4.wrapMode = TextureWrapMode.Clamp;
-        t_i5.wrapMode = TextureWrapMode.Clamp;
-
-        t_t1.wrapMode = TextureWrapMode.Clamp;
-        t_t2.wrapMode = TextureWrapMode.Clamp;
-        t_t3.wrapMode = TextureWrapMode.Clamp;
-        t_t4.wrapMode = TextureWrapMode.Clamp;
-        t_t5.wrapMode = TextureWrapMode.Clamp;
-
-        t_s1.wrapMode = TextureWrapMode.Clamp;
-        t_s2.wrapMode = TextureWrapMode.Clamp;
-        t_s3.wrapMode = TextureWrapMode.Clamp;
-        t_s4.wrapMode = TextureWrapMode.Clamp;
-        t_s5.wrapMode = TextureWrapMode.Clamp;
-
-        t_d1.wrapMode = TextureWrapMode.Clamp;
-        t_d2.wrapMode = TextureWrapMode.Clamp;
-        t_d3.wrapMode = TextureWrapMode.Clamp;
-        t_d4.wrapMode = TextureWrapMode.Clamp;
-        t_d5.wrapMode = TextureWrapMode.Clamp;
-
         Rect r = new Rect(0,0,10,10);
         Rect r2 = new Rect(0,0,20,20);
         Vector2 v = new Vector2(0.5f,0.5f);
 
-        Sprite s_g1 = Sprite.Create(t_g1, r2, v, 20);
-        Sprite s_g2 = Sprite.Create(t_g2, r2, v, 20);
-        Sprite s_g3 = Sprite.Create(t_g3, r2, v, 20);
-        Sprite s_g4 = Sprite.Create(t_g4, r2, v, 20);
-        Sprite s_g5 = Sprite.Create(t_g5, r2, v, 20);
-
-        Sprite s_m1 = Sprite.Create(t_m1, r2, v, 20);
-        Sprite s_m2 = Sprite.Create(t_m2, r2, v, 20);
-        Sprite s_m3 = Sprite.Create(t_m3, r2, v, 20);
-        Sprite s_m4 = Sprite.Create(t_m4, r2, v, 20);
-        Sprite s_m5 = Sprite.Create(t_m5, r2, v, 20);
-
-        Sprite s_i1 = Sprite.Create(t_i1, r2, v, 20);
-        Sprite s_i2 = Sprite.Create(t_i2, r2, v, 20);
-        Sprite s_i3 = Sprite.Create(t_i3, r2, v, 20);
-        Sprite s_i4 = Sprite.Create(t_i4, r2, v, 20);
-        Sprite s_i5 = Sprite.Create(t_i5, r2, v, 20);
-
-        Sprite s_t1 = Sprite.Create(t_t1, r2, v, 20);
-        Sprite s_t2 = Sprite.Create(t_t2, r2, v, 20);
-        Sprite s_t3 = Sprite.Create(t_t3, r2, v, 20);
-        Sprite s_t4 = Sprite.Create(t_t4, r2, v, 20);
-        Sprite s_t5 = Sprite.Create(t_t5, r2, v, 20);
-
-        Sprite s_s1 = Sprite.Create(t_s1, r2, v, 20);
-        Sprite s_s2 = Sprite.Create(t_s2, r2, v, 20);
-        Sprite s_s3 = Sprite.Create(t_s3, r2, v, 20);
-        Sprite s_s4 = Sprite.Create(t_s4, r2, v, 20);
-        Sprite s_s5 = Sprite.Create(t_s5, r2, v, 20);
-
-        Sprite s_d1 = Sprite.Create(t_d1, r2, v, 20);
-        Sprite s_d2 = Sprite.Create(t_d2, r2, v, 20);
-        Sprite s_d3 = Sprite.Create(t_d3, r2, v, 20);
-        Sprite s_d4 = Sprite.Create(t_d4, r2, v, 20);
-        Sprite s_d5 = Sprite.Create(t_d5, r2, v, 20);
-
-        for (int i = 0; i < tiles.GetLength(0); i++) {
-            for (int j = 0; j < tiles.GetLength(1); j++) {
+        for (int i = 0; i < Textures.numTileGroups; i++) {
+            for (int j = 0; j < Textures.numTilesPerGroup; j++) {
+                tileSprites[i,j] = Sprite.Create(textures.tileTextures[i,j],r2,v,20);
                 tiles[i,j] = (Tile)ScriptableObject.CreateInstance("Tile");
+                tiles[i,j].sprite = tileSprites[i,j];
             }
         }
-
-        tiles[3,0].sprite = s_g1;
-        tiles[3,1].sprite = s_g2;
-        tiles[3,2].sprite = s_g3;
-        tiles[3,3].sprite = s_g4;
-        tiles[3,4].sprite = s_g5;
-
-        tiles[0,0].sprite = s_m1;
-        tiles[0,1].sprite = s_m2;
-        tiles[0,2].sprite = s_m3;
-        tiles[0,3].sprite = s_m4;
-        tiles[0,4].sprite = s_m5;
-
-        tiles[1,0].sprite = s_i1;
-        tiles[1,1].sprite = s_i2;
-        tiles[1,2].sprite = s_i3;
-        tiles[1,3].sprite = s_i4;
-        tiles[1,4].sprite = s_i5;
-
-        tiles[2,0].sprite = s_t1;
-        tiles[2,1].sprite = s_t2;
-        tiles[2,2].sprite = s_t3;
-        tiles[2,3].sprite = s_t4;
-        tiles[2,4].sprite = s_t5;
-
-        tiles[4,0].sprite = s_s1;
-        tiles[4,1].sprite = s_s2;
-        tiles[4,2].sprite = s_s3;
-        tiles[4,3].sprite = s_s4;
-        tiles[4,4].sprite = s_s5;
-
-        tiles[5,0].sprite = s_d1;
-        tiles[5,1].sprite = s_d2;
-        tiles[5,2].sprite = s_d3;
-        tiles[5,3].sprite = s_d4;
-        tiles[5,4].sprite = s_d5;
 
         //debugTiles
 
@@ -1450,7 +1208,7 @@ public class Main : MonoBehaviour
         Texture2D t_dcs_red = new Texture2D(chunkSize,chunkSize);
 
         float opacity = 1;
-        if (debug_drawTempOffsets) opacity = 0.5f;
+        if (debug_drawHumidity) opacity = 0.5f;
 
         Color[] blues = new Color[chunkSize*chunkSize];
         Color blue = Color.blue;
@@ -1537,8 +1295,8 @@ public class Main : MonoBehaviour
         topTree.drawTempColors();
     }
 
-    void drawTempOffsets() {
-        topTree.drawTempOffsets();
+    void drawHumidity() {
+        topTree.drawHumidity();
     }
 
     public static void DrawRect(Vector3 min, Vector3 max, Color color, float duration) {
