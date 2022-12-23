@@ -9,11 +9,13 @@ using System;
 
 TODO:
 
+-- implement biomes / humidity?
+
 -- remake character
 
 -- remake player animation
 
--- add semi chunks that can be multiple biomes
+-- add semi chunks that can be multiple temps
 
 -- turn map into seperate tilemaps at a certain quadtree level and disable far away tilemaps for performance
 
@@ -81,7 +83,7 @@ public class Main : MonoBehaviour
         TilemapRenderer tr = g_map.AddComponent<TilemapRenderer>() as TilemapRenderer;
         tr.sortingLayerID = SortingLayer.NameToID("mapLayer");
 
-        seed = new Vector2(UnityEngine.Random.value*UnityEngine.Random.Range(1,10000),UnityEngine.Random.value*UnityEngine.Random.Range(1,10000));
+        seed = new Vector2(UnityEngine.Random.value*UnityEngine.Random.Range(1,100000),UnityEngine.Random.value*UnityEngine.Random.Range(1,100000));
 
         initTiles();
         initTrees();
@@ -368,18 +370,22 @@ public class Main : MonoBehaviour
             int d = r * 2;
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
+                setRandomBiome(curC);
                 curC = curC.neighbours[3];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
+                setRandomBiome(curC);
                 curC = curC.neighbours[5];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
+                setRandomBiome(curC);
                 curC = curC.neighbours[7];
             }
             for (int i = 0; i < d; i++) {
                 setTreeTempLevel(curC);
+                setRandomBiome(curC);
                 curC = curC.neighbours[1];
             }
         }
@@ -692,6 +698,10 @@ public class Main : MonoBehaviour
             c.tempLevel = t - Chunk.maxTempLevel - 1;
         }
         c.hasTemp = true;
+    }
+
+    void setRandomBiome(Chunk c) {
+        c.biome = new Biome(c.tempIndex,UnityEngine.Random.Range(0,Biome.numBiomesPerTemp[c.tempIndex-1]));
     }
 
     void updateNeighbours(Chunk c) {

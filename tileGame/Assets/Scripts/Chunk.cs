@@ -44,6 +44,7 @@ public class Chunk : Quadtree
     }
 
     void setSections(BoundsInt a) {
+        
         sections = new BoundsInt[9];
         for (int i = 0; i < 9; i++) sections[i] = new BoundsInt();
         int b = Main.borderSize;
@@ -56,7 +57,7 @@ public class Chunk : Quadtree
         sections[6].SetMinMax(a.min, new Vector3Int(a.x+b,a.y+b,1));
         sections[7].SetMinMax(new Vector3Int(a.x,a.y+b,0), new Vector3Int(a.x+b,a.yMax-b,1));
         sections[8].SetMinMax(new Vector3Int(a.x+b,a.y+b,0), new Vector3Int(a.xMax-b,a.yMax-b,1));
-
+        
         /* alternative (better?)
         sections = new BoundsInt[9];
         int b = Main.borderSize;
